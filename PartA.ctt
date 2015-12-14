@@ -418,7 +418,7 @@ transport_b_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X z
 
 transport_f_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X y z) (p : P x)
   : paths (P z) (transportf X P y z e' (transportf X P x y e p)) (transportf X P x z (pathscomp0 X x y z e e') p)
-  = undefined
+  = transport_f_b X P x y z (<i> e @ -i) e' p
 
 transport_b_b (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X y z) (p : P z)
   : paths (P x) (transportb X P x y e (transportb X P y z e' p)) (transportb X P x z (pathscomp0 X x y z e e') p)
