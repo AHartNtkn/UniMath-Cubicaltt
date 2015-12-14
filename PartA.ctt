@@ -1,0 +1,484 @@
+module PartA where
+
+import Preamble
+
+-- ============= Some standard constructions not using identity types (paths) ============= 
+-- ============= Canonical functions from empty and to unit ============= 
+
+fromempty (A : U) : empty -> A = split {}
+
+tounit (A : U) (a : A) : unit = tt
+
+-- ============= Functions from unit corresponding to terms =============
+
+termfun (X : U) (x : X) : unit -> X = \(t : unit) -> x
+
+-- ============= Identity functions and function composition =============
+
+idfun (T : U) (t : T) : T = t
+
+funcomp (X Y Z : U) (f : X -> Y) (g : Y -> Z) : X -> Z =
+  \(x : X) -> g (f x)
+
+funcomp_assoc (X Y Z W : U) (f : X -> Y) (g : Y -> Z) (h : Z -> W)
+  : paths (X -> W) 
+       (funcomp X Z W (funcomp X Y Z f g) h) 
+       (funcomp X Y W f (funcomp Y Z W g h))
+  = <_> \(x : X) -> h (g (f x))
+
+-- ============= back and forth between functions of pairs and functions returning functions =============
+
+curry (X : U) (Y : X -> U) (Z : U) (f : ((x:X) * Y x) -> Z) :
+  (x : X) -> Y x -> Z = \(x : X) (yx : Y x) -> f (x, yx)
+
+uncurry (X : U) (Y : X -> U) (Z : U) (f : (x:X) -> Y x -> Z) :
+  ((x : X) * Y x) -> Z = \(p : (x : X) * Y x) -> f p.1 p.2
+
+uncurry_curry (X : U) (Y : X -> U) (Z : U) (f: ((x:X) * Y x) -> Z) :
+  paths (((x : X) * Y x) -> Z) (uncurry X Y Z (curry X Y Z f)) f = <_> f
+
+curry_uncurry (X : U) (Y : X -> U) (Z : U) (f: (x:X) -> Y x -> Z) :
+  paths ((x : X) -> Y x -> Z) (curry X Y Z (uncurry X Y Z f)) f = <_> f
+
+-- ============= Iteration of an endomorphism =============
+
+iteration (T : U) (f : T -> T) : nat -> T -> T = split
+  zero  -> idfun T
+  suc n -> funcomp T T T f (iteration T f n)
+
+-- ============= Basic constructions related to the adjoint evaluation =============
+-- function X -> ((X -> Y) -> Y)
+
+adjev (X Y : U) (x : X) (f : X -> Y) : Y = f x
+
+adjev2 (X Y : U) (phi : ((X -> Y) -> Y) -> Y) : X -> Y =
+  \(x : X) -> phi (\(f : X -> Y) -> f x)
+
+-- ============= Pairwise direct products =============
+dirprod (X Y : U) : U = (x:X) * Y
+
+dirprod_pr1 (X Y : U) (p : dirprod X Y) : X = p.1
+dirprod_pr2 (X Y : U) (p : dirprod X Y) : Y = p.2
+
+dirprodpair (X Y : U) (x : X) (y : Y) : dirprod X Y = (x, y)
+
+dirprodadj (X Y Z : U) (f : dirprod X Y -> Z) : X -> Y -> Z =
+  curry X (\(x : X) -> Y) Z f
+-- \(x : X) (y : Y) -> f (dirprodpair X Y x y)
+
+dirprodf (X Y X' Y' : U)
+  (f : X -> Y) (f' : X' -> Y') (xx' : dirprod X X') : dirprod Y Y' =
+  (f xx'.1, f' xx'.2)
+--  dirprodpair Y Y' (f (dirprod_pr1 X X' xx')) (f' (dirprod_pr2 X X' xx'))
+
+ddualand (X Y P : U)
+  (xp : (X -> P) -> P) (yp : (Y -> P) -> P) (X0 : dirprod X Y -> P) : P =
+  xp (\(x : X) -> yp (\(y : Y) -> X0 (x, y)))
+
+-- ============= Negation and double negation =============
+
+neg (X : U) : U = X -> empty
+
+neq (X : U) (x y : X) : U = neg (paths X x y)
+
+negf (X Y : U) (f : X -> Y) : neg Y -> neg X =
+  \(ny : neg Y)(x : X) -> ny (f x)
+
+dneg (X : U) : U = neg (neg X)
+
+dnegf (X Y : U) (f : X -> Y) : dneg X -> dneg Y =
+  negf (neg Y) (neg X) (negf X Y f)
+
+todneg (X : U) : X -> dneg X = adjev X empty
+
+dnegnegtoneg (X : U) : dneg (neg X) -> neg X = adjev2 X empty
+
+dneganddnegl1 (X Y : U) (dnx : dneg X) (dny : dneg Y) :
+  neg (X -> neg Y) = \(X2 : X -> neg Y) -> dnegf X (neg Y) X2 dnx dny
+
+dneganddnegimpldneg (X Y : U) (dnx : dneg X) (dny : dneg Y) :
+  dneg (dirprod X Y) = ddualand X Y empty dnx dny
+
+-- ============= Logical equivalence =============
+
+logeq (X Y : U) : U = dirprod (X -> Y) (Y -> X)
+
+isrefl_logeq (X : U) : logeq X X = (idfun X, idfun X)
+
+issymm_logeq (X Y : U) (p : logeq X Y) : (logeq Y X) = (p.2, p.1)
+
+logeqnegs (X Y : U) (l : logeq X Y ) : logeq (neg X) (neg Y) =
+  (negf Y X l.2, negf X Y l.1)
+
+logeq_both_true (X Y : U) : X -> Y -> (logeq X Y) =
+  \(x : X)(y : Y) -> (\(x : X) -> y, \(y : Y) -> x)
+
+logeq_both_false (X Y : U) : neg X -> neg Y -> (logeq X Y) =
+  \(nx : neg X)(ny : neg Y) ->
+    (\(x : X) -> fromempty Y (nx x)
+    ,\(y : Y) -> fromempty X (ny y) )
+
+logeq_trans (X Y Z : U) (lxy : logeq X Y) (lyz : logeq Y Z) : logeq X Z =
+  (funcomp X Y Z lxy.1 lyz.1, funcomp Z Y X lyz.2 lxy.2)
+
+-- ============= Operations on paths =============
+-- ============= Composition of paths and inverse paths =============
+
+pathscomp0 (X : U) (a b c : X) (e1 : paths X a b) (e2 : paths X b c) :
+  paths X a c = <i> comp (<_> X) (e1 @ i) [(i=0) -> <_> a, (i=1) -> <j> e2@j]
+-- This is an equivalent definition
+-- transport (<i> paths X a (e2 @ i)) e1
+
+
+pathscomp0rid (X : U) (a b : X) (e1 : paths X a b) :
+  paths (paths X a b) (pathscomp0 X a b b e1 (idpath X b)) e1 =
+  <i j> fill (<_> X) (e1 @ j) [(j=0) -> <_> a,(j=1) -> <_> b] @ -i
+-- This is an equivalent definition.
+-- <j i> comp (<_> X) (e1 @ i) [(j = 1) -> <_> e1 @ i,(i=0) -> <_> a, (i=1) -> <_> b]
+
+-- This is trivial in the original UniMath, but not in this setting. Wondering if there's a better way to prove this.
+pathscomp0lid (X : U) (a b : X) (e1 : paths X a b) :
+  paths (paths X a b) e1 (pathscomp0 X a a b (idpath X a) e1) =
+  paths_rect X a
+    (\(x : X)(p : paths X a x) -> paths (paths X a x) p (pathscomp0 X a a x (idpath X a) p))
+    (<i> pathscomp0rid X a a (idpath X a) @ -i) b e1
+
+{- An alternative definition. Is there a shorter purely-cubical proof?
+  <j i> comp (<_> X) (s @ i @ -j)
+                     [(i=0) -> <k> a
+                     ,(i=1) -> <k> c @ -j \/ k
+                     ,(j=0) -> <k> e1 @ i
+                     ,(j=1) -> <k> c @ i /\ k ]
+  where
+  c : paths X a b = pathscomp0 X a a b (idpath X a) e1
+  
+  s : IdP (<k> paths X a (e1 @ k)) (<_> a) c
+    = <j i> fill (<_> X) a [(i = 0) -> <_> a, (i=1) -> <k> e1 @ k] @ j
+-}
+
+pathsinv0 (X : U) (a b : X) (e : paths X a b) : paths X b a = <i> e @ -i    
+
+path_assoc (X : U) (a b c d : X) (f : paths X a b) (g : paths X b c) (h : paths X c d)
+  : paths (paths X a d) (pathscomp0 X a b d f (pathscomp0 X b c d g h))
+                        (pathscomp0 X a c d (pathscomp0 X a b c f g) h)
+  = paths_rect X c
+      (\(x : X)(p : paths X c x) ->
+        paths (paths X a x) (pathscomp0 X a b x f (pathscomp0 X b c x g p))
+                            (pathscomp0 X a c x (pathscomp0 X a b c f g) p) )
+      (pathscomp0 (paths X a c)
+                  (pathscomp0 X a b c f (pathscomp0 X b c c g (idpath X c)))
+                  (pathscomp0 X a b c f g)
+                  (pathscomp0 X a c c (pathscomp0 X a b c f g) (idpath X c))
+                  (<i> pathscomp0 X a b c f (pathscomp0rid X b c g @ i))
+                  (<i> pathscomp0rid X a c (pathscomp0 X a b c f g) @ -i) )
+      d h
+
+pathsinv0l (X : U) (a b : X) (e : paths X a b) :
+  paths (paths X a a) (pathscomp0 X a b a e (pathsinv0 X a b e)) (idpath X a) =
+  paths_rect X a
+    (\(x : X)(p : paths X a x) -> paths (paths X a a) (pathscomp0 X a x a p (pathsinv0 X a x p)) (idpath X a))
+    (pathscomp0rid X a a (idpath X a)) b e
+
+pathsinv0r (X : U) (a b : X) (e : paths X a b) :
+  paths (paths X b b) (pathscomp0 X b a b (pathsinv0 X a b e) e) (idpath X b) =
+  paths_rect X a
+    (\(x : X)(p : paths X a x) -> paths (paths X x x) (pathscomp0 X x a x (pathsinv0 X a x p) p) (idpath X x))
+    (pathscomp0rid X a a (idpath X a)) b e
+
+pathsinv0inv0 (X : U) (x x' : X) (e : paths X x x') :
+  paths (paths X x x') (pathsinv0 X x' x (pathsinv0 X x x' e)) e = <_> e
+
+pathscomp_cancel_left (X:U) (x y z : X) (p: paths X x y) (r s : paths X y z) :
+  paths (paths X x z) (pathscomp0 X x y z p r) (pathscomp0 X x y z p s) -> paths (paths X y z) r s =
+  paths_rect X y
+    (\(x : X)(p : paths X y x) ->
+      paths (paths X x z) (pathscomp0 X x y z (<i> p @ -i) r) (pathscomp0 X x y z (<i> p @ -i) s) -> paths (paths X y z) r s )
+    f x (<i> p @ -i)
+  where
+  f (prs : paths (paths X y z) (pathscomp0 X y y z (idpath X y) r) (pathscomp0 X y y z (idpath X y) s)) :
+    paths (paths X y z) r s =
+    transport (<i> paths (paths X y z) (pathscomp0lid X y z r @ -i) (pathscomp0lid X y z s @ -i)) prs
+
+pathscomp_cancel_right (X:U) (x y z : X) (p q: paths X x y) (s : paths X y z) :
+  paths (paths X x z) (pathscomp0 X x y z p s) (pathscomp0 X x y z q s) -> paths (paths X x y) p q =
+  paths_rect X y
+    (\(z : X)(s : paths X y z) ->
+      paths (paths X x z) (pathscomp0 X x y z p s) (pathscomp0 X x y z q s) -> paths (paths X x y) p q)
+    f z s
+  where
+  f (pqs : paths (paths X x y) (pathscomp0 X x y y p (idpath X y)) (pathscomp0 X x y y q (idpath X y))) :
+    paths (paths X x y) p q =
+    transport (<i> paths (paths X x y) (pathscomp0rid X x y p @ i) (pathscomp0rid X x y q @ i)) pqs
+
+-- ============= Direct product of paths ============= 
+
+pathsdirprod (X Y : U) (x1 x2 : X) (y1 y2 : Y) (ex : paths X x1 x2) (ey : paths Y y1 y2) 
+  : paths (dirprod X Y) (dirprodpair X Y x1 y1) (dirprodpair X Y x2 y2) 
+  = <i> (ex @ i, ey @ i)
+
+-- ============= The function maponpaths between paths types defined by a =============
+-- function between ambient types and its behavior relative to @ and !
+
+maponpaths (T1 T2 : U) (f : T1 -> T2) (t1 t2 : T1) (e : paths T1 t1 t2) : paths T2 (f t1) (f t2)
+  = <i> f (e @ i)
+
+maponpathscomp0 (X Y : U) (x1 x2 x3 : X) (f : X -> Y) (e1 : paths X x1 x2) (e2 : paths X x2 x3)
+  : paths (paths Y (f x1) (f x3))
+      (maponpaths X Y f x1 x3 (pathscomp0 X x1 x2 x3 e1 e2))
+      (pathscomp0 Y (f x1) (f x2) (f x3) (maponpaths X Y f x1 x2 e1) (maponpaths X Y f x2 x3 e2))
+  = <j i> comp (<_> Y) (f1 @ i) [(i=0) -> <k> f x1
+                                ,(i=1) -> <k> f2 @ k
+                                ,(j=0) -> <k> (maponpaths X Y f x1 (e2 @ k) (lem2 @ k)) @ i
+                                ,(j=1) -> <k> lem1 @ k @ i ]
+  where
+  f1 : paths Y (f x1) (f x2) = maponpaths X Y f x1 x2 e1
+  f2 : paths Y (f x2) (f x3) = maponpaths X Y f x2 x3 e2
+
+  lem1 : IdP (<i> paths Y (f x1) (f2 @ i)) f1 (pathscomp0 Y (f x1) (f x2) (f x3) f1 f2) =
+    <j i> fill (<_> Y) (f1 @ i) [(i=0) -> <_> f x1, (i=1) -> f2] @ j
+    
+  lem2 : IdP (<i> paths X x1 (e2 @ i)) e1 (pathscomp0 X x1 x2 x3 e1 e2) = 
+    <j i> fill (<_> X) (e1 @ i) [(i=0) -> <_> x1, (i=1) -> e2] @ j
+
+maponpathsinv0 (X Y : U) (f : X -> Y) (x1 x2 : X) (e : paths X x1 x2)
+               : paths (paths Y (f x2) (f x1))
+                       (maponpaths X Y f x2 x1 (pathsinv0 X x1 x2 e))
+                       (pathsinv0 Y (f x1) (f x2) (maponpaths X Y f x1 x2 e))
+               = <_> pathsinv0 Y (f x1) (f x2) (maponpaths X Y f x1 x2 e)
+
+-- ============= maponpaths for the identity functions and compositions of functions ============= 
+
+maponpathsidfun (X : U) (x x' : X) (e : paths X x x')
+  : paths (paths X x x') (maponpaths X X (idfun X) x x' e) e
+  = <_> e
+
+maponpathscomp (X Y Z : U) (x x' : X) (f : X -> Y) (g : Y -> Z) (e : paths X x x')
+  : paths (paths Z (g (f x)) (g (f x'))) (maponpaths Y Z g (f x) (f x') (maponpaths X Y f x x' e))
+                         (maponpaths X Z (funcomp X Y Z f g) x x' e)
+  = <_> maponpaths Y Z g (f x) (f x') (maponpaths X Y f x x' e)
+
+-- naturality of maponpaths
+
+maponpaths_naturality (X Y : U) (f:X->Y) (x x' x'':X) (p:paths X x x') (q: paths X x' x'')
+           (p':paths Y (f x) (f x')) (q':paths Y (f x') (f x''))
+           (r:paths (paths Y (f x) (f x'))   (maponpaths X Y f x x' p)   p')
+           (s:paths (paths Y (f x') (f x'')) (maponpaths X Y f x' x'' q) q')
+  : paths (paths Y (f x) (f x'')) (maponpaths X Y f x x'' (pathscomp0 X x x' x'' p q))
+                                  (pathscomp0 Y (f x) (f x') (f x'') p' q')
+  = transport (<i> paths (paths Y (f x) (f x''))
+                (maponpaths X Y f x x'' (pathscomp0 X x x' x'' p q))
+                (pathscomp0 Y (f x) (f x') (f x'') (r @ i) (s @ i))  )
+              (maponpathscomp0 X Y x x' x'' f p q)
+
+maponpaths_naturality' (X Y:U) (f:X->Y) (x x' x'':X) (p:paths X x' x) (q:paths X x' x'')
+           (p':paths Y (f x') (f x)) (q':paths Y (f x') (f x''))
+           (r:paths (paths Y (f x') (f x))   (maponpaths X Y f x' x p)   p')
+           (s:paths (paths Y (f x') (f x'')) (maponpaths X Y f x' x'' q) q')
+  : paths (paths Y (f x) (f x'')) (maponpaths X Y f x x'' (pathscomp0 X x x' x'' (pathsinv0 X x' x p) q))
+                                  (pathscomp0 Y (f x) (f x') (f x'') (pathsinv0 Y (f x') (f x) p') q')
+  = maponpaths_naturality X Y f x x' x'' (<i> p @ -i) q (<i> p' @ -i) q' (<i j> r @ i @ -j) s
+
+{-
+The following three statements show that maponpaths defined by a function f which is homotopic to the identity is "surjective". It is later used to show that the maponpaths defined by a function which is a weak equivalence is itself a weak equivalence.
+-}
+
+maponpathshomidinv (X : U) (f : X -> X)
+  (h : (x : X) -> paths X (f x) x) (x x' : X) (e : paths X (f x) (f x')) : paths X x x' =
+  <i> comp (<_> X) (e @ i) [(i=0) -> h x, (i=1) -> h x']
+-- This is an alternative proof, closer to the one present in the original UniMath.
+-- pathscomp0 X x (f x) x' (<i> h x @ -i) (pathscomp0 X (f x) (f x') x' e (h x'))
+-- Note that the definition used here is far easier to reason about, as can be seen in maponpathshomid2.
+--      that proof would fail, and would likely be far more complicated if this definition were to be used.
+
+-- Note: It seems to me that there might be a more useful version of this theorem using comp
+--       instead of the terms we're defining ourselves.
+maponpathshomid1 (X : U) (f : X -> X) (h : (x : X) -> paths X (f x) x) (x x' : X) (e : paths X x x')
+  : paths (paths X (f x) (f x'))
+          (maponpaths X X f x x' e)
+          (pathscomp0 X (f x) x (f x') (h x) (pathscomp0 X x x' (f x') e (pathsinv0 X (f x') x' (h x'))))
+  = paths_rect X x
+      (\(x' : X)(e : paths X x x') ->
+        paths (paths X (f x) (f x'))
+              (maponpaths X X f x x' e)
+              (pathscomp0 X (f x) x (f x') (h x) (pathscomp0 X x x' (f x') e (<i> h x' @ -i)))  )
+      (<i> comp (<_> paths X (f x) (f x))
+                (pathsinv0r X x (f x) (<j> h x @ -j) @ -i)
+                [(i=0) -> <_ _> f x
+                ,(i=1) -> <k> pathscomp0 X (f x) x (f x) (h x)
+                                         (pathscomp0lid X x (f x) (<l> h x @ -l) @ k) ] )
+      x' e
+
+maponpathshomid2 (X : U) (f : X -> X) (h: (x : X) -> paths X (f x) x) (x x' : X) (e: paths X (f x) (f x'))
+  : paths (paths X (f x) (f x')) (maponpaths X X f x x' (maponpathshomidinv X f h x x' e)) e
+  = <j i> comp (<_> X) (maponpathshomidinv X f h x x' e @ i)
+                       [(i=0) -> <k> h x @ -k
+                       ,(i=1) -> <k> h x' @ -k
+                       ,(j=0) -> <k> lem2 @ k @ i
+                       ,(j=1) -> <k> lem1 @ k @ i ]
+  where
+  lem1 : IdP (<i> paths X (h x @ -i) (h x' @ -i))
+             (maponpathshomidinv X f h x x' e)
+             e
+       = <j i> fill (<_> X) (e @ i) [(i=0) -> h x, (i=1) -> h x'] @ -j
+  
+  lem2 : IdP (<i> paths X (h x @ -i) (h x' @ -i))
+             (maponpathshomidinv X f h x x' e)
+             (maponpaths X X f x x' (maponpathshomidinv X f h x x' e))
+       = <i j> h (maponpathshomidinv X f h x x' e @ j) @ -i
+
+-- Here we consider the behavior of maponpaths in the case of a projection p with a section s.
+
+pathssec1 (X Y : U) (s : X -> Y) (p : Y -> X) (eps : (x : X) -> paths X (p (s x)) x)
+  (x : X) (y : Y) (e : paths Y (s x) y) : paths X x (p y)
+  = pathscomp0 X x (p (s x)) (p y) (<i> eps x @ -i) (<i> p (e @ i))
+
+pathssec2 (X Y : U) (s : X -> Y) (p : Y -> X) (eps : (x : X) -> paths X (p (s x)) x)
+  (x x' : X) (e : paths Y (s x) (s x')) : paths X x x'
+  = <i> comp (<_> X) (p (e @ i)) [(i=0) -> eps x, (i=1) -> eps x']
+
+pathssec2id (X Y : U) (s : X -> Y) (p : Y -> X) (eps : (x : X) -> paths X (p (s x)) x) (x : X)
+  : paths (paths X x x) (pathssec2 X Y s p eps x x (idpath Y (s x))) (idpath X x)
+  = <j i> comp (<_> X) (p (s x)) [(i = 0) -> eps x, (i = 1) -> eps x, (j = 1) -> eps x] 
+
+pathssec3 (X Y : U) (s : X -> Y) (p : Y -> X) (eps : (x : X) -> paths X (p (s x)) x)
+  (x x' : X) (e : paths X x x') : paths (paths X x x') (pathssec2 X Y s p eps x x' (maponpaths X Y s x x' e)) e
+  = paths_rect X x
+      (\(x' : X)(p' : paths X x x') -> paths (paths X x x') (pathssec2 X Y s p eps x x' (maponpaths X Y s x x' p')) p')
+      (pathssec2id X Y s p eps x) x' e
+
+map_on_two_paths (X Y Z : U) (f:X -> Y -> Z) (x x' : X) (y y' : Y) 
+  (px : paths X x x') (py : paths Y y y') : paths Z (f x y) (f x' y') = <i> f (px @ i) (py @ i)
+  
+-- ============= Fibrations and paths =============
+
+tppr (T : U) (P : T -> U) (x : total2 T P) : paths (total2 T P) x (tpair T P (pr1 T P x) (pr2 T P x)) = <_> x
+
+constr1 (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
+  : (f : P x -> P x') *
+    (ee : (p : P x) -> paths (total2 X P) (tpair X P x p) (tpair X P x' (f p))) *
+    (pp : P x) -> paths (paths X x x') (maponpaths (total2 X P) X (pr1 X P) (tpair X P x pp) (tpair X P x' (f pp)) (ee pp)) e
+  = paths_rect X x
+      (\(x':X)(e:paths X x x') -> (f:P x->P x') * (ee:(p:P x)->paths (total2 X P) (tpair X P x p) (tpair X P x' (f p))) *
+        (pp : P x) -> paths (paths X x x') (maponpaths (total2 X P) X (pr1 X P) (tpair X P x pp) (tpair X P x' (f pp)) (ee pp)) e )
+      (idfun (P x), \(p:P x) -> idpath (total2 X P) (x, p), \(p:P x) -> <_> idpath X x) x' e
+
+transportf (X : U) (P : X -> U) (x x' : X) (e : paths X x x') (px : P x) : P x' = transport (<i> P (e @ i)) px
+-- These definitions are closer to what's presented in the originl library
+-- (constr1 X P x x' e).1
+{-
+  pr1 (P x -> P x')
+      (\(f : P x -> P x') ->
+        (ee : (p : P x) -> paths (total2 X P) (tpair X P x p) (tpair X P x' (f p))) *
+        (pp : P x) -> paths (paths X x x')
+                            (maponpaths (total2 X P) X (pr1 X P) (tpair X P x pp) (tpair X P x' (f pp)) (ee pp)) e)
+      (constr1 X P x x' e)
+-}
+
+transportb (X : U) (P : X -> U) (x x' : X) (e : paths X x x') (px : P x') : P x = transport (<i> P (e @ -i)) px
+-- This definition is closer to what's presented in the original library
+-- transportf X P x' x (pathsinv0 X x x' e)
+
+dpath_transportf (X : U) (P:X->U) (x:X) (p:P x) : paths (P x) (transportf X P x x (idpath X x) p) p
+  = <i> fill (<_> P x) p [] @ -i
+
+functtransportf (X Y : U) (f : X -> Y) (P : Y -> U) (x x' : X) (e : paths X x x') (p : P (f x))
+  : paths (P (f x')) (transportf X (\(x : X) -> P (f x)) x x' e p) (transportf Y P (f x) (f x') (maponpaths X Y f x x' e) p)
+  = <_> transportf Y P (f x) (f x') (maponpaths X Y f x x' e) p
+
+functtransportb (X Y : U) (f : X -> Y) (P : Y -> U) (x x' : X) (e : paths X x' x) (p : P (f x))
+  : paths (P (f x')) (transportb X (\(x : X) -> P (f x)) x' x e p) (transportb Y P (f x') (f x) (maponpaths X Y f x' x e) p)
+  = <_> transportb Y P (f x') (f x) (maponpaths X Y f x' x e) p
+
+transport_f_b (X : U) (P : X -> U) (x y z : X) (e : paths X y x) (e' : paths X y z) (p : P x)
+  : paths (P z) (transportf X P y z e' (transportb X P y x e p))
+                (transportf X P x z (pathscomp0 X x y z (pathsinv0 X y x e) e') p)
+  = paths_rect X y
+      (\(z : X)(e' : paths X y z) ->
+        paths (P z) (transportf X P y z e' (transportb X P y x e p))
+                    (transportf X P x z (pathscomp0 X x y z (pathsinv0 X y x e) e') p)  )
+      d z e'
+  where
+  d2 : paths (P x) (transportf X P x x (idpath X x) (transportb X P x x (idpath X x) p))
+                   (transportf X P x x (pathscomp0 X x x x (pathsinv0 X x x (idpath X x)) (idpath X x)) p)
+    = <i> comp (<j> P (pathscomp0rid X x x (<_> x) @ -i @ j)) (fill (<_> P x) p [] @ -i) []
+
+  d : paths (P y) (transportf X P y y (idpath X y) (transportb X P y x e p))
+                  (transportf X P x y (pathscomp0 X x y y (pathsinv0 X y x e) (idpath X y)) p)
+    = paths_rect X x
+        (\(y : X)(e : paths X x y) ->
+           paths (P y) (transportf X P y y (idpath X y) (transportb X P y x (<i> e @ -i) p))
+                      (transportf X P x y (pathscomp0 X x y y (pathsinv0 X y x (<i> e @ -i)) (idpath X y)) p) )
+        d2 y (<i> e @ -i)
+
+transport_b_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X z y) (p : P x)
+  : paths (P z)
+          (transportb X P z y e' (transportf X P x y e p))
+          (transportf X P x z (pathscomp0 X x y z e (pathsinv0 X z y e')) p)
+  = transport_f_b X P x y z (<i> e @ -i) (<i> e' @ -i) p
+
+transport_f_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X y z) (p : P x)
+  : paths (P z) (transportf X P y z e' (transportf X P x y e p)) (transportf X P x z (pathscomp0 X x y z e e') p)
+  = undefined
+
+transport_b_b (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X y z) (p : P z)
+  : paths (P x) (transportb X P x y e (transportb X P y z e' p)) (transportb X P x z (pathscomp0 X x y z e e') p)
+  = undefined
+
+transport_map (X : U) (P Q : X -> U) (f : (x : X) -> P x -> Q x) (x y : X) (e : paths X x y) (p : P x)
+  : paths (Q y) (transportf X Q x y e (f x p)) (f y (transportf X P x y e p))
+  = undefined
+
+transport_section (X : U) (P : X -> U) (f: (x : X) -> P x) (x y : X) (e : paths X x y)
+  : paths (P y) (transportf X P x y e (f x)) (f y)
+  = undefined
+
+-- A series of lemmas about paths and sigma types. Adapted from the HoTT library http://github.com/HoTT/HoTT
+
+base_paths (A : U) (B : A -> U) (a b : total2 A B)
+  : paths (total2 A B) a b -> paths A (pr1 A B a) (pr1 A B b)
+  = undefined
+
+total2_paths (A : U) (B : A -> U) (s s' : (x : A) * B x)
+    (p : paths A (pr1 A B s) (pr1 A B s'))
+    (q : paths (B (pr1 A B s')) (transportf A B (pr1 A B s) (pr1 A B s') p (pr2 A B s)) (pr2 A B s'))
+  : paths ((x : A) * B x) s s'
+  = undefined
+
+total2_paths_b (A : U) (B : A -> U) (s s' : (x : A) * B x)
+    (p : paths A (pr1 A B s) (pr1 A B s'))
+    (q : paths (B (pr1 A B s)) (pr2 A B s) (transportb A B (pr1 A B s) (pr1 A B s') p (pr2 A B s')))
+  : paths ((x : A) * B x) s s'
+  = undefined
+
+total2_paths2 (A : U) (B : A -> U) (a1 : A) (b1 : B a1) (a2 : A) (b2 : B a2)
+    (p : paths A a1 a2) (q : paths (B a2) (transportf A B a1 a2 p b1) b2)
+  : paths ((x : A) * B x) (a1, b1) (a2, b2)
+  = undefined
+
+pair_path_in2 (X : U) (P:X->U) (x:X) (p q:P x) (e:paths (P x) p q)
+  : paths ((x : X) * P x) (x, p) (x, q)
+  = undefined
+
+fiber_paths (A : U) (B : A -> U) (u v : (x : A) * B x) (p : paths ((x : A) * B x) u v)
+  : paths (B (pr1 A B v)) (transportf A B (pr1 A B u) (pr1 A B v) (base_paths A B u v p) (pr2 A B u)) (pr2 A B v)
+  = undefined
+
+total2_fiber_paths (A : U) (B : A -> U) (x y : (x : A) * B x) (p : paths (total2 A B) x y)
+  : paths (paths (total2 A B) x y) (total2_paths A B x y (base_paths A B x y p) (fiber_paths A B x y p)) p
+  = undefined
+
+base_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
+    (p : paths A (pr1 A B x) (pr1 A B y))
+    (q : paths (B (pr1 A B y)) (transportf A B (pr1 A B x) (pr1 A B y) p (pr2 A B x)) (pr2 A B y))
+  : paths (paths A (pr1 A B x) (pr1 A B y))
+          (base_paths A B x y (total2_paths A B x y p q))
+          p
+  = undefined
+
+
+
+
+
+
+
+

@@ -1,0 +1,78 @@
+module Preamble where
+
+-- Type universe denoted "U"
+
+-- ============= The Empty and Unit Types ==========
+data empty =
+empty_rect (A : U) : empty -> A = split {}
+
+data unit = tt
+unit_rect (C : unit -> U) (ctt : C tt) : (u : unit) -> C u = split
+  tt -> ctt
+
+-- ============= The Identity Type ==========
+paths (A : U) (a b : A) : U = IdP (<_> A) a b
+idpath (A : U) (a : A) : paths A a a = <_> a
+paths_rect -- Note: Same as J
+  (A : U) (a : A) (P : (a0 : A) -> paths A a a0 -> U)
+  (d : P a (idpath A a)) (y : A) (p : paths A a y) : P y p =
+  transport (<i> P (p @ i) (<j> p @ i /\ j)) d
+
+-- ============= The Coproduct Type ==========
+data coprod (A B : U) = ii1 (a : A) | ii2 (b : B)
+coprod_rect
+  (A B : U) (P : coprod A B -> U)
+  (ap : (a : A) -> P (ii1 a))
+  (bp : (b : B) -> P (ii2 b)) :
+  (co : coprod A B) -> P co = split
+  ii1 a -> ap a
+  ii2 b -> bp b
+
+coprod_rect_compute_1
+  (A B : U) (P : coprod A B -> U)
+  (f : (a : A) -> P (ii1 a))
+  (g : (b : B) -> P (ii2 b)) (a:A) :
+  paths (P (ii1 a)) (coprod_rect A B P f g (ii1 a)) (f a) = <_> f a
+coprod_rect_compute_2
+  (A B : U) (P : coprod A B -> U)
+  (f : (a : A) -> P (ii1 a))
+  (g : (b : B) -> P (ii2 b)) (b:B) :
+  paths (P (ii2 b)) (coprod_rect A B P f g (ii2 b)) (g b) = <_> g b
+
+-- ============== The Product Type ===========
+total2 (X : U) (P : X -> U) : U = (x : X) * P x
+tpair (X : U) (P:X->U) (x : X) (p : P x) : (x : X) * P x = (x, p)
+
+pr1 (X : U) (P : X -> U) (pr : total2 X P) : X = pr.1
+pr2 (X : U) (P : X -> U) (pr : total2 X P) : P pr.1 = pr.2
+
+rewrite_pr1_tpair (X : U) (P:X->U) (x : X) (p : P x) :
+  paths X (tpair X P x p).1 x = <_> x
+rewrite_pr2_tpair (X : U) (P:X->U) (x : X) (p : P x) :
+  paths (P x) (tpair X P x p).2 p = <_> p
+
+-- ============== The Natural Numbers ============
+data nat = zero | suc (n : nat)
+
+one   : nat = suc zero
+two   : nat = suc one
+three : nat = suc two
+four  : nat = suc three
+five  : nat = suc four
+six   : nat = suc five
+seven : nat = suc six
+eight : nat = suc seven
+nine  : nat = suc eight
+ten   : nat = suc nine
+
+add : nat -> nat -> nat = split
+  zero  -> \(m : nat) -> m
+  suc n -> \(m : nat) -> suc (add n m)
+mul : nat -> nat -> nat = split
+  zero -> \(n : nat) -> zero
+  suc n -> \(m : nat) -> add m (mul n m)
+exp (m : nat) : nat -> nat = split
+  zero  -> one
+  suc n -> mul m (exp m n)
+
+
