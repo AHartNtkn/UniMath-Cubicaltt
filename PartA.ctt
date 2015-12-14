@@ -363,7 +363,7 @@ constr1 (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
       (idfun (P x), \(p:P x) -> idpath (total2 X P) (x, p), \(p:P x) -> <_> idpath X x) x' e
 
 transportf (X : U) (P : X -> U) (x x' : X) (e : paths X x x') (px : P x) : P x' = transport (<i> P (e @ i)) px
--- These definitions are closer to what's presented in the originl library
+-- These definitions are closer to what's presented in the original library
 -- (constr1 X P x x' e).1
 {-
   pr1 (P x -> P x')
