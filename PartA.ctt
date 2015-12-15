@@ -407,7 +407,7 @@ transport_f_b (X : U) (P : X -> U) (x y z : X) (e : paths X y x) (e' : paths X y
     = paths_rect X x
         (\(y : X)(e : paths X x y) ->
            paths (P y) (transportf X P y y (idpath X y) (transportb X P y x (<i> e @ -i) p))
-                      (transportf X P x y (pathscomp0 X x y y (pathsinv0 X y x (<i> e @ -i)) (idpath X y)) p) )
+                       (transportf X P x y (pathscomp0 X x y y (pathsinv0 X y x (<i> e @ -i)) (idpath X y)) p) )
         d2 y (<i> e @ -i)
 
 transport_b_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X z y) (p : P x)
@@ -448,7 +448,7 @@ transport_map (X : U) (P Q : X -> U) (f : (x : X) -> P x -> Q x) (x y : X) (e : 
          paths (Q y) (transportf X Q x y e (f x p)) (f y (transportf X P x y e p))  )
       (<i> comp (<_> Q x) (fill (<_> Q x) (f x p) [] @ -i)
                           [(i=0) -> <_> comp (<_> Q x) (f x p) []
-                          ,(i=1) -> <j> f x (fill (<_> P x) p [] @ j)])
+                          ,(i=1) -> <j> f x (fill (<_> P x) p [] @ j)  ]  )
       y e
 
 transport_section (X : U) (P : X -> U) (f: (x : X) -> P x) (x y : X) (e : paths X x y)
@@ -457,21 +457,38 @@ transport_section (X : U) (P : X -> U) (f: (x : X) -> P x) (x y : X) (e : paths 
 
 -- A series of lemmas about paths and sigma types. Adapted from the HoTT library http://github.com/HoTT/HoTT
 
-base_paths (A : U) (B : A -> U) (a b : total2 A B)
-  : paths (total2 A B) a b -> paths A (pr1 A B a) (pr1 A B b)
-  = undefined
+base_paths (A : U) (B : A -> U) (a b : total2 A B) (p : paths (total2 A B) a b)
+  : paths A (pr1 A B a) (pr1 A B b)
+  = <i> (p @ i).1
 
 total2_paths (A : U) (B : A -> U) (s s' : (x : A) * B x)
     (p : paths A (pr1 A B s) (pr1 A B s'))
     (q : paths (B (pr1 A B s')) (transportf A B (pr1 A B s) (pr1 A B s') p (pr2 A B s)) (pr2 A B s'))
   : paths ((x : A) * B x) s s'
-  = undefined
+  = <i> (p @ i, d @ i)
+  where
+  d : IdP (<i> B (p @ i)) (pr2 A B s) (pr2 A B s')
+    = <i> comp (<_> B (p @ i))
+               (fill (<j> B (p @ j)) (pr2 A B s) [] @ i)
+               [(i = 0) -> <_> pr2 A B s, (i = 1) -> q]
 
 total2_paths_b (A : U) (B : A -> U) (s s' : (x : A) * B x)
     (p : paths A (pr1 A B s) (pr1 A B s'))
     (q : paths (B (pr1 A B s)) (pr2 A B s) (transportb A B (pr1 A B s) (pr1 A B s') p (pr2 A B s')))
   : paths ((x : A) * B x) s s'
-  = undefined
+  = <i> (p @ i, d @ -i)
+  where
+  d : IdP (<i> B (p @ -i)) (pr2 A B s') (pr2 A B s)
+    = <i> comp (<_> B (p @ -i))
+               (fill (<j> B (p @ -j)) (pr2 A B s') [] @ i)
+               [(i = 0) -> <_> pr2 A B s', (i = 1) -> <i> q @ -i]
+
+-- Here is a more Cubical apropriate version of the above two theorems
+total2_paths_CUB (A : U) (B : A -> U) (s s' : (x : A) * B x)
+    (p : paths A (pr1 A B s) (pr1 A B s'))
+    (q : IdP (<i> B (p @ i)) (pr2 A B s) (pr2 A B s'))
+  : paths ((x : A) * B x) s s'
+  = <i> (p @ i, q @ i)
 
 total2_paths2 (A : U) (B : A -> U) (a1 : A) (b1 : B a1) (a2 : A) (b2 : B a2)
     (p : paths A a1 a2) (q : paths (B a2) (transportf A B a1 a2 p b1) b2)
@@ -498,7 +515,25 @@ base_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
           p
   = undefined
 
+transportf_fiber_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
+    (p : paths A (pr1 A B x) (pr1 A B y))
+    (q : paths (B (pr1 A B y)) (transportf A B (pr1 A B x) (pr1 A B y) p (pr2 A B x)) (pr2 A B y))
+  : paths
+      (paths (B (pr1 A B y)) (transportf A B (pr1 A B x) (pr1 A B y) p (pr2 A B x)) (pr2 A B y))
+      (transportf 
+         (paths A (pr1 A B x) (pr1 A B y))
+         (\(p' : paths A (pr1 A B x) (pr1 A B y)) ->
+           paths (B (pr1 A B y))
+             (transportf A B (pr1 A B x) (pr1 A B y) p' (pr2 A B x)) 
+             (pr2 A B y))
+         (base_paths A B x y (total2_paths A B x y p q))
+         p
+         (base_total2_paths A B x y p q)
+         (fiber_paths A B x y (total2_paths A B x y p q))  )
+      q
+  = undefined
 
+--Lemmas about transport Adapted from the HoTT library and the HoTT book
 
 
 
