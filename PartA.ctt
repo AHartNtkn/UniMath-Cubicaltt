@@ -351,7 +351,7 @@ map_on_two_paths (X Y Z : U) (f:X -> Y -> Z) (x x' : X) (y y' : Y)
   
 -- ============= Fibrations and paths =============
 
-tppr (T : U) (P : T -> U) (x : total2 T P) : paths (total2 T P) x (tpair T P (pr1 T P x) (pr2 T P x)) = <_> x
+tppr (T : U) (P : T -> U) (x : total2 T P) : paths (total2 T P) x (tpair T P x.1 x.2) = <_> x
 
 constr1 (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
   : (f : P x -> P x') *
@@ -363,16 +363,8 @@ constr1 (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
       (idfun (P x), \(p:P x) -> idpath (total2 X P) (x, p), \(p:P x) -> <_> idpath X x) x' e
 
 transportf (X : U) (P : X -> U) (x x' : X) (e : paths X x x') (px : P x) : P x' = transport (<i> P (e @ i)) px
--- These definitions are closer to what's presented in the original library
+-- This definition is closer to what's presented in the original library
 -- (constr1 X P x x' e).1
-{-
-  pr1 (P x -> P x')
-      (\(f : P x -> P x') ->
-        (ee : (p : P x) -> paths (total2 X P) (tpair X P x p) (tpair X P x' (f p))) *
-        (pp : P x) -> paths (paths X x x')
-                            (maponpaths (total2 X P) X (pr1 X P) (tpair X P x pp) (tpair X P x' (f pp)) (ee pp)) e)
-      (constr1 X P x x' e)
--}
 
 transportb (X : U) (P : X -> U) (x x' : X) (e : paths X x x') (px : P x') : P x = transport (<i> P (e @ -i)) px
 -- This definition is closer to what's presented in the original library
@@ -458,35 +450,35 @@ transport_section (X : U) (P : X -> U) (f: (x : X) -> P x) (x y : X) (e : paths 
 -- A series of lemmas about paths and sigma types. Adapted from the HoTT library http://github.com/HoTT/HoTT
 
 base_paths (A : U) (B : A -> U) (a b : total2 A B) (p : paths (total2 A B) a b)
-  : paths A (pr1 A B a) (pr1 A B b)
+  : paths A a.1 b.1
   = <i> (p @ i).1
 
 total2_paths (A : U) (B : A -> U) (s s' : (x : A) * B x)
-    (p : paths A (pr1 A B s) (pr1 A B s'))
-    (q : paths (B (pr1 A B s')) (transportf A B (pr1 A B s) (pr1 A B s') p (pr2 A B s)) (pr2 A B s'))
+    (p : paths A s.1 s'.1)
+    (q : paths (B s'.1) (transportf A B s.1 s'.1 p s.2) s'.2)
   : paths ((x : A) * B x) s s'
   = <i> (p @ i, d @ i)
   where
-  d : IdP (<i> B (p @ i)) (pr2 A B s) (pr2 A B s')
+  d : IdP (<i> B (p @ i)) s.2 s'.2
     = <i> comp (<_> B (p @ i))
-               (fill (<j> B (p @ j)) (pr2 A B s) [] @ i)
-               [(i = 0) -> <_> pr2 A B s, (i = 1) -> q]
+               (fill (<j> B (p @ j)) s.2 [] @ i)
+               [(i = 0) -> <_> s.2, (i = 1) -> q]
 
 total2_paths_b (A : U) (B : A -> U) (s s' : (x : A) * B x)
-    (p : paths A (pr1 A B s) (pr1 A B s'))
-    (q : paths (B (pr1 A B s)) (pr2 A B s) (transportb A B (pr1 A B s) (pr1 A B s') p (pr2 A B s')))
+    (p : paths A s.1 s'.1)
+    (q : paths (B s.1) s.2 (transportb A B s.1 s'.1 p s'.2))
   : paths ((x : A) * B x) s s'
   = <i> (p @ i, d @ -i)
   where
-  d : IdP (<i> B (p @ -i)) (pr2 A B s') (pr2 A B s)
+  d : IdP (<i> B (p @ -i)) s'.2 s.2
     = <i> comp (<_> B (p @ -i))
-               (fill (<j> B (p @ -j)) (pr2 A B s') [] @ i)
-               [(i = 0) -> <_> pr2 A B s', (i = 1) -> <i> q @ -i]
+               (fill (<j> B (p @ -j)) s'.2 [] @ i)
+               [(i = 0) -> <_> s'.2, (i = 1) -> <i> q @ -i]
 
 -- Here is a more Cubical apropriate version of the above two theorems
 total2_paths_CUB (A : U) (B : A -> U) (s s' : (x : A) * B x)
-    (p : paths A (pr1 A B s) (pr1 A B s'))
-    (q : IdP (<i> B (p @ i)) (pr2 A B s) (pr2 A B s'))
+    (p : paths A s.1 s'.1)
+    (q : IdP (<i> B (p @ i)) s.2 s'.2)
   : paths ((x : A) * B x) s s'
   = <i> (p @ i, q @ i)
 
@@ -500,7 +492,7 @@ pair_path_in2 (X : U) (P:X->U) (x:X) (p q:P x) (e:paths (P x) p q)
   = undefined
 
 fiber_paths (A : U) (B : A -> U) (u v : (x : A) * B x) (p : paths ((x : A) * B x) u v)
-  : paths (B (pr1 A B v)) (transportf A B (pr1 A B u) (pr1 A B v) (base_paths A B u v p) (pr2 A B u)) (pr2 A B v)
+  : paths (B v.1) (transportf A B u.1 v.1 (base_paths A B u v p) u.2) v.2
   = undefined
 
 total2_fiber_paths (A : U) (B : A -> U) (x y : (x : A) * B x) (p : paths (total2 A B) x y)
@@ -508,35 +500,62 @@ total2_fiber_paths (A : U) (B : A -> U) (x y : (x : A) * B x) (p : paths (total2
   = undefined
 
 base_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
-    (p : paths A (pr1 A B x) (pr1 A B y))
-    (q : paths (B (pr1 A B y)) (transportf A B (pr1 A B x) (pr1 A B y) p (pr2 A B x)) (pr2 A B y))
-  : paths (paths A (pr1 A B x) (pr1 A B y))
-          (base_paths A B x y (total2_paths A B x y p q))
-          p
+    (p : paths A x.1 y.1)
+    (q : paths (B y.1) (transportf A B x.1 y.1 p x.2) y.2)
+  : paths (paths A x.1 y.1) (base_paths A B x y (total2_paths A B x y p q)) p
   = undefined
 
 transportf_fiber_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
-    (p : paths A (pr1 A B x) (pr1 A B y))
-    (q : paths (B (pr1 A B y)) (transportf A B (pr1 A B x) (pr1 A B y) p (pr2 A B x)) (pr2 A B y))
-  : paths
-      (paths (B (pr1 A B y)) (transportf A B (pr1 A B x) (pr1 A B y) p (pr2 A B x)) (pr2 A B y))
-      (transportf 
-         (paths A (pr1 A B x) (pr1 A B y))
-         (\(p' : paths A (pr1 A B x) (pr1 A B y)) ->
-           paths (B (pr1 A B y))
-             (transportf A B (pr1 A B x) (pr1 A B y) p' (pr2 A B x)) 
-             (pr2 A B y))
-         (base_paths A B x y (total2_paths A B x y p q))
-         p
-         (base_total2_paths A B x y p q)
-         (fiber_paths A B x y (total2_paths A B x y p q))  )
-      q
+    (p : paths A x.1 y.1)
+    (q : paths (B y.1) (transportf A B x.1 y.1 p x.2) y.2)
+  : paths (paths (B y.1) (transportf A B x.1 y.1 p x.2) y.2)
+          (transportf (paths A x.1 y.1)
+                      (\(p' : paths A x.1 y.1) -> paths (B y.1) (transportf A B x.1 y.1 p' x.2) y.2)
+                      (base_paths A B x y (total2_paths A B x y p q))
+                      p
+                      (base_total2_paths A B x y p q)
+                      (fiber_paths A B x y (total2_paths A B x y p q))  )
+          q
   = undefined
 
---Lemmas about transport Adapted from the HoTT library and the HoTT book
+-- Lemmas about transport Adapted from the HoTT library and the HoTT book
 
+transportD (A : U) (B : A -> U) (C : (a : A) -> B a -> U)
+    (x1 x2 : A) (p : paths A x1 x2) (y : B x1) (z : C x1 y)
+  : C x2 (transportf A B x1 x2 p y)
+  = undefined
 
+transportf_total2 (A : U) (B : A -> U) (C : (a : A) -> B a -> U)
+  (x1 x2 : A) (p : paths A x1 x2) (yz : (y : B x1) * C x1 y)
+  : paths ((y : B x2) * C x2 y)
+      (transportf A (\(x : A) -> (y : B x) * C x y) x1 x2 p yz)
+      (tpair (B x2) (\(y : B x2) -> C x2 y)
+             (transportf A B x1 x2 p yz.1)
+             (transportD A B C x1 x2 p yz.1 yz.2) )
+  = undefined
 
+transportf_dirprod (A : U) (B B' : A -> U) (x x' : (a : A) * dirprod (B a) (B' a)) (p : paths A x.1 x'.1)
+  : paths (dirprod (B x'.1) (B' x'.1))
+          (transportf A (\(a : A) -> dirprod (B a) (B' a)) x.1 x'.1 p x.2 )
+          (dirprodpair (B x'.1) (B' x'.1)
+                       (transportf A B x.1 x'.1 p x.2.1)
+                       (transportf A B' x.1 x'.1 p x.2.2) )
+  = undefined        
 
+transportf_id1 (A : U) (a x1 x2 : A) (p : paths A x1 x2) (q : paths A a x1)
+  : paths (paths A a x2)
+          (transportf A (\(x : A) -> paths A a x) x1 x2 p q)
+          (pathscomp0 A a x1 x2 q p)
+  = undefined
 
+transportf_id2 (A : U) (a x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 a)
+  : paths (paths A x2 a)
+          (transportf A (\(x : A) -> paths A x a) x1 x2 p q)
+          (pathscomp0 A x2 x1 a (pathsinv0 A x1 x2 p) q)
+  = undefined
 
+transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
+  : paths (paths A x2 x2)
+          (transportf A (\(x : A) -> paths A x x) x1 x2 p q)
+          (pathscomp0 A x2 x1 x2 (pathsinv0 A x1 x2 p) (pathscomp0 A x1 x1 x2 q p))
+  = undefined
