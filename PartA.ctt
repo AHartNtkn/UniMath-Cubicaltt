@@ -453,6 +453,7 @@ base_paths (A : U) (B : A -> U) (a b : total2 A B) (p : paths (total2 A B) a b)
   : paths A a.1 b.1
   = <i> (p @ i).1
 
+-- Is there a nicer proof of this?
 total2_paths (A : U) (B : A -> U) (s s' : (x : A) * B x)
     (p : paths A s.1 s'.1)
     (q : paths (B s'.1) (transportf A B s.1 s'.1 p s.2) s'.2)
@@ -483,27 +484,70 @@ total2_paths_CUB (A : U) (B : A -> U) (s s' : (x : A) * B x)
   = <i> (p @ i, q @ i)
 
 total2_paths2 (A : U) (B : A -> U) (a1 : A) (b1 : B a1) (a2 : A) (b2 : B a2)
-    (p : paths A a1 a2) (q : paths (B a2) (transportf A B a1 a2 p b1) b2)
+    (p : paths A a1 a2)
+    (q : paths (B a2) (transportf A B a1 a2 p b1) b2)
   : paths ((x : A) * B x) (a1, b1) (a2, b2)
-  = undefined
+  = total2_paths A B (a1, b1) (a2, b2) p q
 
-pair_path_in2 (X : U) (P:X->U) (x:X) (p q:P x) (e:paths (P x) p q)
+pair_path_in2 (X : U) (P:X -> U) (x:X) (p q:P x) (e:paths (P x) p q)
   : paths ((x : X) * P x) (x, p) (x, q)
-  = undefined
+  = <i> (x, e @ i)
 
 fiber_paths (A : U) (B : A -> U) (u v : (x : A) * B x) (p : paths ((x : A) * B x) u v)
   : paths (B v.1) (transportf A B u.1 v.1 (base_paths A B u v p) u.2) v.2
-  = undefined
+  = paths_rect ((x : A) * B x) u
+      (\(v : (x : A) * B x)(p : paths ((x : A) * B x) u v) ->
+         paths (B v.1) (transportf A B u.1 v.1 (base_paths A B u v p) u.2) v.2  )
+      (<i> fill (<_> B u.1) u.2 [] @ -i)
+      v p
+
+-- Some more Cubical Friendly versions of the above
+fiber_paths_CUB (A : U) (B : A -> U) (u v : (x : A) * B x) (p : paths ((x : A) * B x) u v)
+  : IdP (<i> B (base_paths A B u v p @ i)) u.2 v.2
+  = <i> (p @ i).2
+
+fiber_paths_CUB_2 (A : U) (B : A -> U) (u v : (x : A) * B x) (p : paths ((x : A) * B x) u v)
+  : IdP (<i> B (p @ i).1) u.2 v.2
+  = <i> (p @ i).2
 
 total2_fiber_paths (A : U) (B : A -> U) (x y : (x : A) * B x) (p : paths (total2 A B) x y)
   : paths (paths (total2 A B) x y) (total2_paths A B x y (base_paths A B x y p) (fiber_paths A B x y p)) p
-  = undefined
+  = paths_rect ((x : A) * B x) x
+      (\(y : (x : A) * B x)(p : paths (total2 A B) x y) ->
+         paths (paths (total2 A B) x y) (total2_paths A B x y (base_paths A B x y p) (fiber_paths A B x y p)) p  )
+      (<i j> (x.1, lem6 @ i @ j)) y p
+  where
+  cp3 : paths (B x.1) x.2 x.2
+      = <i> comp (<_> B x.1) (comp (<_> B x.1) x.2 [ (i = 0) -> <_> x.2 ])
+                 [ (i = 0) -> <_> x.2,               
+                   (i = 1) -> <j> comp (<_> B x.1) (comp (<_> B x.1) x.2 [ (j = 1) -> <_> x.2 ])
+                                       [ (j = 0) -> <k> comp (<_> B x.1) x.2 [], (j = 1) -> <_> x.2 ] ]
+    
+  cp4 : paths (B x.1) x.2 x.2
+      = <i> comp (<_> B x.1) x.2
+                 [ (i = 0) -> <_> x.2,               
+                   (i = 1) -> <j> comp (<_> B x.1) x.2 [ (j = 0) -> <_> x.2, (j = 1) -> <_> x.2 ] ]
+  
+  lem3 : paths (paths (B x.1) x.2 x.2) cp3 cp4
+       = <l i> comp (<_> B x.1) (fill (<_> B x.1) x.2 [ (i = 0) -> <_> x.2 ] @ -l)
+                    [ (i = 0) -> <_> x.2,               
+                      (i = 1) -> <j> comp (<_> B x.1) (fill (<_> B x.1) x.2 [ (j = 1) -> <_> x.2 ] @ -l)
+                                          [ (j = 0) -> <k> fill (<_> B x.1) x.2 [] @ -l, (j = 1) -> <_> x.2 ] ]
+
+  cp5 : paths (B x.1) x.2 x.2 = <i> comp (<_> B x.1) x.2 [ (i = 0) -> <_> x.2, (i = 1) -> <_> x.2 ]
+      
+  lem4 : paths (paths (B x.1) x.2 x.2) cp4 cp5
+       = <l i> comp (<_> B x.1) x.2 [ (i = 0) -> <_> x.2, (i = 1) -> pathscomp0rid (B x.1) x.2 x.2 (<_> x.2) @ l ]
+  
+  lem6 : paths (paths (B x.1) x.2 x.2) cp3 (<_> x.2)
+       = pathscomp0 (paths (B x.1) x.2 x.2) cp3 cp4 (<_> x.2) lem3
+                    (pathscomp0 (paths (B x.1) x.2 x.2) cp4 cp5 (<_> x.2) lem4 (pathscomp0rid (B x.1) x.2 x.2 (<_> x.2)))
 
 base_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
     (p : paths A x.1 y.1)
     (q : paths (B y.1) (transportf A B x.1 y.1 p x.2) y.2)
   : paths (paths A x.1 y.1) (base_paths A B x y (total2_paths A B x y p q)) p
-  = undefined
+  = <_> p
 
 transportf_fiber_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
     (p : paths A x.1 y.1)
