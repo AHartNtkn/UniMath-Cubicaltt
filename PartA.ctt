@@ -129,7 +129,6 @@ pathscomp0 (X : U) (a b c : X) (e1 : paths X a b) (e2 : paths X b c) :
 -- This is an equivalent definition
 -- transport (<i> paths X a (e2 @ i)) e1
 
-
 pathscomp0rid (X : U) (a b : X) (e1 : paths X a b) :
   paths (paths X a b) (pathscomp0 X a b b e1 (<_> b)) e1 =
   <i j> fill (<_> X) (e1 @ j) [(j=0) -> <_> a,(j=1) -> <_> b] @ -i
@@ -284,7 +283,7 @@ maponpathshomidinv (X : U) (f : X -> X)
 -- This is an alternative proof, closer to the one present in the original UniMath.
 -- pathscomp0 X x (f x) x' (<i> h x @ -i) (pathscomp0 X (f x) (f x') x' e (h x'))
 -- Note that the definition used here is far easier to reason about, as can be seen in maponpathshomid2.
---      that proof would fail, and would likely be far more complicated if this definition were to be used.
+--      that proof would fail, and would likely be far more complicated if the original definition were to be used.
 
 maponpathshomid1 (X : U) (f : X -> X) (h : (x : X) -> paths X x (f x)) (x x' : X) (e : paths X x x')
   : paths (paths X (f x) (f x'))
@@ -362,7 +361,7 @@ functtransportf (X Y : U) (f : X -> Y) (P : Y -> U) (x x' : X) (e : paths X x x'
 --       strictly follow how it's done in the original UniMath.
 functtransportb (X Y : U) (f : X -> Y) (P : Y -> U) (x x' : X) (e : paths X x' x) (p : P (f x))
   : paths (P (f x')) (transport (<i> P (f (e @ -i))) p) (transport (<i> P (f (e @ -i))) p)
-  = <_> (transport (<i> P (f (e @ -i))) p)
+  = <_> transport (<i> P (f (e @ -i))) p
 
 -- Is there a better way to prove this?
 transport_f_b (X : U) (P : X -> U) (x y z : X) (e : paths X y x) (e' : paths X y z) (p : P x)
@@ -528,14 +527,18 @@ transportf_id1 (A : U) (a x1 x2 : A) (p : paths A x1 x2) (q : paths A a x1)
           (pathscomp0 A a x1 x2 q p)
   = <_> pathscomp0 A a x1 x2 q p
 
+-- Is there a better way to prove this?
 transportf_id2 (A : U) (a x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 a)
   : paths (paths A x2 a)
           (transport (<i> paths A (p @ i) a) q)
           (pathscomp0 A x2 x1 a (<i> p @ -i) q)
-  = undefined
+  = <i> comp (<_> paths A x2 a)
+             (<j> comp (<_> A) x1 [ (j = 0) -> p, (j = 1) -> q ])
+             [(i = 0) -> <k i> comp (<_> A) (q @ i /\ k) [(i = 0) -> p, (i = 1) -> <l> q @ l \/ k ]
+             ,(i = 1) -> <k i> comp (<_> A) (p @ -i /\ k) [(i = 0) -> <l> p @ l \/ k, (i = 1) -> q ] ]
 
 transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
   : paths (paths A x2 x2)
           (transport (<i> paths A (p @ i) (p @ i)) q)
           (<i> comp (<_> A) (q @ i) [(i=0) -> p, (i=1) -> p])
-  = <_> (transport (<i> paths A (p @ i) (p @ i)) q)
+  = <_> transport (<i> paths A (p @ i) (p @ i)) q
