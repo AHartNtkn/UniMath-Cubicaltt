@@ -69,7 +69,6 @@ dirprodadj (X Y Z : U) (f : dirprod X Y -> Z) : X -> Y -> Z =
 dirprodf (X Y X' Y' : U)
   (f : X -> Y) (f' : X' -> Y') (xx' : dirprod X X') : dirprod Y Y' =
   (f xx'.1, f' xx'.2)
---  dirprodpair Y Y' (f (dirprod_pr1 X X' xx')) (f' (dirprod_pr2 X X' xx'))
 
 ddualand (X Y P : U)
   (xp : (X -> P) -> P) (yp : (Y -> P) -> P) (X0 : dirprod X Y -> P) : P =
@@ -136,11 +135,11 @@ pathscomp0rid (X : U) (a b : X) (e1 : paths X a b) :
 -- <j i> comp (<_> X) (e1 @ i) [(j = 1) -> <_> e1 @ i,(i=0) -> <_> a, (i=1) -> <_> b]
 
 -- This is trivial in the original UniMath, but not in this setting. Wondering if there's a better way to prove this.
-pathscomp0lid (X : U) (a b : X) (e1 : paths X a b) :
-  paths (paths X a b) e1 (pathscomp0 X a a b (<_> a) e1) =
-  paths_rect X a
-    (\(x : X)(p : paths X a x) -> paths (paths X a x) p (pathscomp0 X a a x (<_> a) p))
-    (<i> pathscomp0rid X a a (<_> a) @ -i) b e1
+pathscomp0lid (X : U) (a b : X) (e1 : paths X a b)
+  : paths (paths X a b) e1 (pathscomp0 X a a b (<_> a) e1)
+  = paths_rect X a
+      (\(x : X)(p : paths X a x) -> paths (paths X a x) p (pathscomp0 X a a x (<_> a) p))
+      (<i> pathscomp0rid X a a (<_> a) @ -i) b e1
 
 {- An alternative definition. Is there a shorter purely-cubical proof?
   <j i> comp (<_> X) (s @ i @ -j)
@@ -175,55 +174,59 @@ path_assoc (X : U) (a b c d : X) (f : paths X a b) (g : paths X b c) (h : paths 
                   (<i> pathscomp0rid X a c (pathscomp0 X a b c f g) @ -i) )
       d h
 
-pathsinv0l (X : U) (a b : X) (e : paths X a b) :
-  paths (paths X a a) (pathscomp0 X a b a e (<i> e @ -i)) (<_> a) =
-  paths_rect X a
-    (\(x : X)(p : paths X a x) -> paths (paths X a a) (pathscomp0 X a x a p (<i> p @ -i)) (<_> a))
-    (pathscomp0rid X a a (<_> a)) b e
+-- Is there a better way to prove this?
+pathsinv0l (X : U) (a b : X) (e : paths X a b)
+  : paths (paths X a a) (pathscomp0 X a b a e (<i> e @ -i)) (<_> a)
+  = paths_rect X a
+      (\(x : X)(p : paths X a x) -> paths (paths X a a) (pathscomp0 X a x a p (<i> p @ -i)) (<_> a))
+      (pathscomp0rid X a a (<_> a)) b e
 
-pathsinv0r (X : U) (a b : X) (e : paths X a b) :
-  paths (paths X b b) (pathscomp0 X b a b (<i> e @ -i) e) (<_> b) =
-  paths_rect X a
-    (\(x : X)(p : paths X a x) -> paths (paths X x x) (pathscomp0 X x a x (<i> p @ -i) p) (<_> x))
-    (pathscomp0rid X a a (<_> a)) b e
+-- Is there a better way to prove this?
+pathsinv0r (X : U) (a b : X) (e : paths X a b)
+  : paths (paths X b b) (pathscomp0 X b a b (<i> e @ -i) e) (<_> b)
+  = paths_rect X a
+      (\(x : X)(p : paths X a x) -> paths (paths X x x) (pathscomp0 X x a x (<i> p @ -i) p) (<_> x))
+      (pathscomp0rid X a a (<_> a)) b e
 
-pathsinv0inv0 (X : U) (x x' : X) (e : paths X x x') :
-  paths (paths X x x') (<j> (pathsinv0 X x x' e) @ -j) e = <_> e
+pathsinv0inv0 (X : U) (x x' : X) (e : paths X x x')
+  : paths (paths X x x') (<j> (pathsinv0 X x x' e) @ -j) e = <_> e
 
-pathscomp_cancel_left (X:U) (x y z : X) (p: paths X x y) (r s : paths X y z) :
-  paths (paths X x z) (pathscomp0 X x y z p r) (pathscomp0 X x y z p s) -> paths (paths X y z) r s =
-  paths_rect X y
-    (\(x : X)(p : paths X y x) ->
-      paths (paths X x z) (pathscomp0 X x y z (<i> p @ -i) r) (pathscomp0 X x y z (<i> p @ -i) s) -> paths (paths X y z) r s )
-    f x (<i> p @ -i)
+-- Is there a better way to prove this?
+pathscomp_cancel_left (X:U) (x y z : X) (p: paths X x y) (r s : paths X y z)
+  : paths (paths X x z) (pathscomp0 X x y z p r) (pathscomp0 X x y z p s) -> paths (paths X y z) r s
+  = paths_rect X y
+      (\(x : X)(p : paths X y x) ->
+        paths (paths X x z) (pathscomp0 X x y z (<i> p @ -i) r) (pathscomp0 X x y z (<i> p @ -i) s) -> paths (paths X y z) r s )
+      f x (<i> p @ -i)
   where
   f (prs : paths (paths X y z) (pathscomp0 X y y z (<_> y) r) (pathscomp0 X y y z (<_> y) s)) :
     paths (paths X y z) r s =
     transport (<i> paths (paths X y z) (pathscomp0lid X y z r @ -i) (pathscomp0lid X y z s @ -i)) prs
 
-pathscomp_cancel_right (X:U) (x y z : X) (p q: paths X x y) (s : paths X y z) :
-  paths (paths X x z) (pathscomp0 X x y z p s) (pathscomp0 X x y z q s) -> paths (paths X x y) p q =
-  paths_rect X y
-    (\(z : X)(s : paths X y z) ->
-      paths (paths X x z) (pathscomp0 X x y z p s) (pathscomp0 X x y z q s) -> paths (paths X x y) p q)
-    f z s
+-- Is there a better way to prove this?
+pathscomp_cancel_right (X:U) (x y z : X) (p q: paths X x y) (s : paths X y z)
+  : paths (paths X x z) (pathscomp0 X x y z p s) (pathscomp0 X x y z q s) -> paths (paths X x y) p q
+  = paths_rect X y
+      (\(z : X)(s : paths X y z) ->
+        paths (paths X x z) (pathscomp0 X x y z p s) (pathscomp0 X x y z q s) -> paths (paths X x y) p q)
+      f z s
   where
-  f (pqs : paths (paths X x y) (pathscomp0 X x y y p (<_> y)) (pathscomp0 X x y y q (<_> y))) :
-    paths (paths X x y) p q =
-    transport (<i> paths (paths X x y) (pathscomp0rid X x y p @ i) (pathscomp0rid X x y q @ i)) pqs
+  f (pqs : paths (paths X x y) (pathscomp0 X x y y p (<_> y)) (pathscomp0 X x y y q (<_> y)))
+    : paths (paths X x y) p q
+    = transport (<i> paths (paths X x y) (pathscomp0rid X x y p @ i) (pathscomp0rid X x y q @ i)) pqs
 
 -- ============= Direct product of paths ============= 
 
 pathsdirprod (X Y : U) (x1 x2 : X) (y1 y2 : Y) (ex : paths X x1 x2) (ey : paths Y y1 y2) 
-  : paths (dirprod X Y) (dirprodpair X Y x1 y1) (dirprodpair X Y x2 y2) 
+  : paths ((_ : X) * Y) (x1, y1) (x2, y2) 
   = <i> (ex @ i, ey @ i)
 
 -- ============= The function maponpaths between paths types defined by a =============
 -- function between ambient types and its behavior relative to @ and !
 
 -- Note: unless the type of the path cannot be inffered, this should generally be avoided
-maponpaths (T1 T2 : U) (f : T1 -> T2) (t1 t2 : T1) (e : paths T1 t1 t2) : paths T2 (f t1) (f t2)
-  = <i> f (e @ i)
+maponpaths (T1 T2 : U) (f : T1 -> T2) (t1 t2 : T1) (e : paths T1 t1 t2)
+  : paths T2 (f t1) (f t2) = <i> f (e @ i)
 
 -- Is there a better way to prove this?
 maponpathscomp0 (X Y : U) (x1 x2 x3 : X) (f : X -> Y) (e1 : paths X x1 x2) (e2 : paths X x2 x3)
@@ -542,3 +545,4 @@ transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
           (transport (<i> paths A (p @ i) (p @ i)) q)
           (<i> comp (<_> A) (q @ i) [(i=0) -> p, (i=1) -> p])
   = <_> transport (<i> paths A (p @ i) (p @ i)) q
+
