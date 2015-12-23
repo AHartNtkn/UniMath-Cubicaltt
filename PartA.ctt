@@ -567,3 +567,20 @@ homotfun (X Y Z : U) (f f' : X -> Y) (h : homot X (\(_:X)->Y) f f') (g : Y -> Z)
   : homot X (\(_:X)->Z) (funcomp X Y Z f g) (funcomp X Y Z f' g)
   = \(x : X) -> <i> g (h x @ i)
 
+-- Contractibility, homotopy fibers etc.
+-- Contractible types.
+
+iscontr (T:U) : U = (cntr:T) * (t:T) -> paths T t cntr
+
+iscontrpair (T : U)
+  : (x : T) -> ((t : T) -> paths T t x) -> iscontr T
+  = tpair T (\(x : T) -> (t : T) -> paths T t x)
+
+iscontrpr1 (T : U) (k : iscontr T) : T = k.1
+
+iscontrretract (X Y : U) (p : X -> Y) (s : Y -> X)
+  (eps : (y : Y) -> paths Y (p (s y)) y) (is : iscontr X) : iscontr Y
+  = (p is.1, \(t : Y) -> <i> comp (<_> Y) (p (is.2 (s t) @ i)) [(i=0) -> eps t, (i=1) -> <_> p is.1])
+
+proofirrelevancecontr (X : U) (is : iscontr X) (x x' : X) : paths X x x'
+  = <i> comp (<_> X) is.1 [(i=0) -> <i> is.2 x @ -i, (i=1) -> <i> is.2 x' @ -i]
