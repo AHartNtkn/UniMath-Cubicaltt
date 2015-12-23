@@ -336,7 +336,7 @@ constr1 (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
   = (\(p : P x) -> transport (<i> P (e @ i)) p
     ,\(p : P x) -> <i> (e @ i, fill (<j> P (e @ j)) p [] @ i)
     ,\(p : P x) -> <_> e)
-{- This it's done in the original library, but I think my way is better.
+{- This is the way it's done in the original library, but I think my way is better.
     paths_rect X x
       (\(x':X)(e:paths X x x') -> (f:P x->P x') * (ee : (p : P x) -> paths (total2 X P) (x, p) (x', f p)) *
                                   (pp : P x) -> paths (paths X x x') (<i> (ee pp @ i).1) e )
@@ -547,6 +547,7 @@ transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
 -- ============= First homotopy notions ============= 
 -- Homotopy between functions
 
+-- It *might* be a good idea to avoid using homot in favor of using just its definition
 homot (X : U) (P : X -> U) (f g : (x : X) -> P x) : U = (x : X) -> paths (P x) (f x) (g x)
 
 homotcomp (X Y : U) (f f' f'' : X -> Y)
