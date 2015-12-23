@@ -233,10 +233,11 @@ maponpathscomp0 (X Y : U) (x1 x2 x3 : X) (f : X -> Y) (e1 : paths X x1 x2) (e2 :
   : paths (paths Y (f x1) (f x3))
       (<i> f (pathscomp0 X x1 x2 x3 e1 e2 @ i))
       (pathscomp0 Y (f x1) (f x2) (f x3) (<i> f (e1 @ i)) (<i> f (e2 @ i)))
-  = <j i> comp (<_> Y) (f (e1 @ i)) [(i=0) -> <k> f x1
-                                ,(i=1) -> <k> f (e2 @ k)
-                                ,(j=0) -> <k> f (fill (<_> X) (e1 @ i) [(i=0) -> <_> x1, (i=1) -> e2] @ k)
-                                ,(j=1) -> <k> fill (<_> Y) (f (e1 @ i)) [(i=0) -> <_> f x1, (i=1) -> <k> f (e2 @ k)] @ k ]
+  = <j i> comp (<_> Y) (f (e1 @ i))
+                       [(i=0) -> <k> f x1
+                       ,(i=1) -> <k> f (e2 @ k)
+                       ,(j=0) -> <k> f (fill (<_> X) (e1 @ i) [(i=0) -> <_> x1, (i=1) -> e2] @ k)
+                       ,(j=1) -> <k> fill (<_> Y) (f (e1 @ i)) [(i=0) -> <_> f x1, (i=1) -> <k> f (e2 @ k)] @ k ]
 
 maponpathsinv0 (X Y : U) (f : X -> Y) (x1 x2 : X) (e : paths X x1 x2)
                : paths (paths Y (f x2) (f x1))
@@ -374,21 +375,18 @@ transport_f_b (X : U) (P : X -> U) (x y z : X) (e : paths X y x) (e' : paths X y
       (\(z : X)(e' : paths X y z) ->
         paths (P z) (transport (<i> P (e' @ i)) (transport (<i> P (e @ -i)) p))
                     (transport (<i> P (pathscomp0 X x y z (<j> e @ -j) e' @ i)) p)  )
-      d z e'
-  where
-  d : paths (P y) (transport (<i> P y) (transport (<i> P (e @ -i)) p))
-                  (transport (<i> P (pathscomp0 X x y y (<j> e @ -j) (<_> y) @ i)) p)
-    = <i> comp (<j> P (fill (<_> X) (e @ -j /\ i) [(j=0) -> <_> e @ i,(j=1) -> <_> y] @ i))
-               (fill (<j> P (e @ -j)) p [] @ -i) []
+      (<i> comp (<j> P (fill (<_> X) (e @ -j /\ i) [(j=0) -> <_> e @ i,(j=1) -> <_> y] @ i))
+               (fill (<j> P (e @ -j)) p [] @ -i) [])
+      z e'
 
 transport_b_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X z y) (p : P x)
   : paths (P z)
-          (transportb X P z y e' (transportf X P x y e p))
-          (transportf X P x z (pathscomp0 X x y z e (<i> e' @ -i)) p)
+          (transport (<i> P (e' @ -i)) (transport (<i> P (e @ i)) p))
+          (transport (<j> P (pathscomp0 X x y z e (<i> e' @ -i) @ j)) p)
   = transport_f_b X P x y z (<i> e @ -i) (<i> e' @ -i) p
 
 transport_f_f (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X y z) (p : P x)
-  : paths (P z) (transportf X P y z e' (transportf X P x y e p)) (transportf X P x z (pathscomp0 X x y z e e') p)
+  : paths (P z) (transport (<i> P (e' @ i)) (transport (<i> P (e @ i)) p)) (transport (<i> P (pathscomp0 X x y z e e' @ i)) p)
   = transport_f_b X P x y z (<i> e @ -i) e' p
 
 -- Is there a better way to do this?
@@ -397,20 +395,20 @@ transport_b_b (X : U) (P : X -> U) (x y z : X) (e : paths X x y) (e' : paths X y
                 (transport (<i> P (pathscomp0 X x y z e e' @ -i)) p)
   = paths_rect X y
       (\(x : X)(e : paths X y x) ->
-         paths (P x) (transportb X P x y (<i> e @ -i) (transportb X P y z e' p))
-                     (transportb X P x z (pathscomp0 X x y z (<i> e @ -i) e') p)  )
+         paths (P x) (transport (<i> P (e @ i)) (transport (<i> P (e' @ -i)) p))
+                     (transport (<j> P (pathscomp0 X x y z (<i> e @ -i) e' @ -j)) p)  )
       d x (<i> e @ -i)
   where
-  d2 : paths (P z) (transportb X P z z (<_> z) (transportb X P z z (<_> z) p))
-                   (transportb X P z z (pathscomp0 X z z z (<_> z) (<_> z)) p)
+  d2 : paths (P z) (transport (<_> P z) (transport (<_> P z) p))
+                   (transport (<i> P (pathscomp0 X z z z (<_> z) (<_> z) @ i)) p)
      = <i> comp (<j> P (pathscomp0rid X z z (<_> z) @ -i @ j)) (fill (<_> P z) p [] @ -i) []
   
-  d : paths (P y) (transportb X P y y (<_> y) (transportb X P y z e' p))
-                  (transportb X P y z (pathscomp0 X y y z (<_> y) e') p)
+  d : paths (P y) (transport (<_> P y) (transport (<i> P (e' @ -i)) p))
+                  (transport (<i> P (pathscomp0 X y y z (<_> y) e' @ -i)) p)
     = paths_rect X z
         (\(y : X)(e' : paths X z y) ->
-           paths (P y) (transportb X P y y (<_> y) (transportb X P y z (<i> e' @ -i) p))
-                       (transportb X P y z (pathscomp0 X y y z (<_> y) (<i> e' @ -i)) p)  )
+           paths (P y) (transport (<_> P y) (transport (<i> P (e' @ i)) p))
+                       (transport (<j> P (pathscomp0 X y y z (<_> y) (<i> e' @ -i) @ -j)) p) )
         d2 y (<i> e' @ -i)
 
 -- Is there a better way to prove this?
@@ -421,7 +419,7 @@ transport_map (X : U) (P Q : X -> U) (f : (x : X) -> P x -> Q x) (x y : X) (e : 
          paths (Q y) (transportf X Q x y e (f x p)) (f y (transportf X P x y e p))  )
       (<i> comp (<_> Q x) (fill (<_> Q x) (f x p) [] @ -i)
                           [(i=0) -> <_> comp (<_> Q x) (f x p) []
-                          ,(i=1) -> <j> f x (fill (<_> P x) p [] @ j)  ]  )
+                          ,(i=1) -> <j> f x (fill (<_> P x) p [] @ j) ] )
       y e
 
 transport_section (X : U) (P : X -> U) (f: (x : X) -> P x) (x y : X) (e : paths X x y)
@@ -500,7 +498,7 @@ transportf_fiber_total2_paths (A : U) (B : A -> U) (x y : (x : A) * B x)
           (transport (<i> IdP (<j> B (p @ j)) x.2 y.2)
                      (<i> (total2_paths A B x y p q @ i).2) )
           q
-  = <j i> fill (<_> B (p @ i)) (q @ i) [ (i = 0) -> <_> x.2, (i = 1) -> <_> y.2 ] @ -j
+  = <j i> fill (<_> B (p @ i)) (q @ i) [(i = 0) -> <_> x.2, (i = 1) -> <_> y.2 ] @ -j
 
 -- Lemmas about transport Adapted from the HoTT library and the HoTT book
 
@@ -545,4 +543,26 @@ transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
           (transport (<i> paths A (p @ i) (p @ i)) q)
           (<i> comp (<_> A) (q @ i) [(i=0) -> p, (i=1) -> p])
   = <_> transport (<i> paths A (p @ i) (p @ i)) q
+
+-- ============= First homotopy notions ============= 
+-- Homotopy between functions
+
+homot (X : U) (P : X -> U) (f g : (x : X) -> P x) : U = (x : X) -> paths (P x) (f x) (g x)
+
+homotcomp (X Y : U) (f f' f'' : X -> Y)
+  (h : homot X (\(_:X)->Y) f f') (h' : homot X (\(_:X)->Y) f' f'')
+  : homot X (\(_:X)->Y) f f''
+  = \(x : X) -> pathscomp0 Y (f x) (f' x) (f'' x) (h x) (h' x)
+
+invhomot (X Y : U) (f f' : X -> Y) (h : homot X (\(_:X)->Y) f f' )
+  : homot X (\(_:X)->Y) f' f
+  = \(x : X) -> <i> h x @ -i
+
+funhomot (X Y Z : U) (f : X -> Y) (g g' : Y -> Z) (h : homot Y (\(_:Y)->Z) g g' )
+  : homot X (\(_:X)->Z) (funcomp X Y Z f g) (funcomp X Y Z f g') 
+  = \(x : X) -> h (f x)
+
+homotfun (X Y Z : U) (f f' : X -> Y) (h : homot X (\(_:X)->Y) f f') (g : Y -> Z)
+  : homot X (\(_:X)->Z) (funcomp X Y Z f g) (funcomp X Y Z f' g)
+  = \(x : X) -> <i> g (h x @ i)
 
