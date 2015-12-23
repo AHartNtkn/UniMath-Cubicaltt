@@ -584,3 +584,38 @@ iscontrretract (X Y : U) (p : X -> Y) (s : Y -> X)
 
 proofirrelevancecontr (X : U) (is : iscontr X) (x x' : X) : paths X x x'
   = <i> comp (<_> X) is.1 [(i=0) -> <i> is.2 x @ -i, (i=1) -> <i> is.2 x' @ -i]
+
+-- Coconuses: spaces of paths which begin (coconusfromt) or end (coconustot) at a given point.
+
+-- It *might* be a good idea to avoid using this in favor of using just its definition
+coconusfromt (T : U) (t : T) : U = (t':T) * paths T t t'
+
+coconusfromtpair (T : U) (t t' : T) (e : paths T t t') : coconusfromt T t = (t', e)
+
+coconusfromtpr1 (T : U) (t : T) (k : coconusfromt T t) : T = k.1
+
+-- It *might* be a good idea to avoid using this in favor of using just its definition
+coconustot (T : U) (t : T) : U = (t':T) * paths T t' t
+
+coconustotpair (T : U) (t t' : T) (e: paths T t' t) : coconustot T t = (t', e)
+
+coconustotpr1 (T : U) (t : T) (k : coconustot T t) : T = k.1
+
+-- Is there a better way to do this?
+connectedcoconustot (T : U) (t : T) (c1 c2 : coconustot T t)
+  : paths (coconustot T t) c1 c2
+  = <i> (comp (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k]
+        ,<j> fill (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k] @ -j )
+
+iscontrcoconustot (T : U) (t : T)
+  : iscontr (coconustot T t)
+  = ((t, <_> t), \(t' : coconustot T t) -> connectedcoconustot T t t' (t, <_> t))
+
+-- Is there a better way to do this?
+connectedcoconusfromt (T : U) (t : T) (c1 c2 : coconusfromt T t)
+  : paths (coconusfromt T t) c1 c2
+  = <i> (comp (<_> T) t [(i=0) -> c1.2, (i=1) -> c2.2]
+        ,<j> fill (<_> T) t [(i=0) -> c1.2, (i=1) -> c2.2] @ j )
+
+iscontrcoconusfromt (T : U) (t : T) : iscontr (coconusfromt T t)
+  = ((t, <_> t), \(t' : coconusfromt T t) -> connectedcoconusfromt T t t' (t, <_> t))
