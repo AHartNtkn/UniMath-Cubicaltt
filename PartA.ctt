@@ -653,14 +653,14 @@ hfibertriangle1' (X Y : U) (f : X -> Y) (x : X) (xe1: hfiber X Y f (f x))
   : IdP (<i> paths Y (f (e @ i).1) (f x)) xe1.2 (<_> f x)
   = <i> (e @ i).2
 
--- Note : Due to the utilization of pathovers in this section, this theroem
+-- Note : Due to the utilization of pathovers in this section, this theorem
 --        becomes the same as hfibertriangle1
 hfibertriangle1inv0 (X Y : U) (f : X -> Y) (y : Y) (xe1 xe2: hfiber X Y f y)
     (e : paths (hfiber X Y f y) xe1 xe2)
   : IdP (<i> paths Y (f (e @ i).1) y) xe1.2 xe2.2
   = <i> (e @ i).2
 
--- Note : Due to the utilization of pathovers in this section, this theroem
+-- Note : Due to the utilization of pathovers in this section, this theorem
 --        becomes the same as hfibertriangle1'
 hfibertriangle1inv0' (X Y : U) (f : X -> Y) (x : X) (xe2: hfiber X Y f (f x))
     (e : paths (hfiber X Y f (f x)) (x, <_> (f x)) xe2)
