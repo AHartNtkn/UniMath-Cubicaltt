@@ -675,3 +675,28 @@ hfibertriangle2 (X Y : U) (f : X -> Y) (y : Y) (xe1 xe2: hfiber X Y f y)
 
 -- Coconus of a function: the total space of the family of h-fibers.
 -- The coconus behaves like the image of a function.
+
+coconusf (X Y : U) (f : X -> Y) : U = (y:Y) * hfiber X Y f y
+
+fromcoconusf (X Y : U) (f : X -> Y) (yxe : coconusf X Y f) : X = yxe.2.1
+
+tococonusf (X Y : U) (f : X -> Y) (x : X) : coconusf X Y f = (f x, x, (<_> f x)) 
+
+homottofromcoconusf (X Y : U) (f : X -> Y) (yxe : coconusf X Y f)
+  : paths (coconusf X Y f) (tococonusf X Y f (fromcoconusf X Y f yxe)) yxe
+  = <i> (yxe.2.2 @ i, yxe.2.1, <j> yxe.2.2 @ i /\ j)
+
+homotfromtococonusf (X Y : U) (f : X -> Y) (x : X)
+  : paths X (fromcoconusf X Y f (tococonusf X Y f x)) x
+  = <_> x
+
+-- Total spaces of families and homotopies
+
+famhomotfun (X : U) (P Q : X -> U) (h : homot X (\(x:X)->U) P Q) (xp : total2 X P)
+  : total2 X Q
+  = transport (<i> total2 X (\(x : X) -> h x @ i)) xp
+
+famhomothomothomot (X : U) (P Q : X -> U) (h1 h2 : homot X (\(x:X)->U) P Q)
+    (H : homot X (\(x : X) -> paths U (P x) (Q x)) h1 h2)
+  : homot (total2 X P) (\(_ : total2 X P) -> total2 X Q) (famhomotfun X P Q h1) (famhomotfun X P Q h2)
+  = \(xp : total2 X P) -> <i> famhomotfun X P Q (\(x : X) -> H x @ i) xp
