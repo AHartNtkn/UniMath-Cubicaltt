@@ -597,14 +597,14 @@ coconusfromtpr1 (T : U) (t : T) (k : coconusfromt T t) : T = k.1
 -- It *might* be a good idea to avoid using this in favor of using just its definition
 coconustot (T : U) (t : T) : U = (t':T) * paths T t' t
 
-coconustotpair (T : U) (t t' : T) (e: paths T t' t) : coconustot T t = (t', e)
+coconustotpair (T : U) (t t' : T) (e : paths T t' t) : coconustot T t = (t', e)
 
 coconustotpr1 (T : U) (t : T) (k : coconustot T t) : T = k.1
 
 -- Is there a better way to do this?
 connectedcoconustot (T : U) (t : T) (c1 c2 : coconustot T t)
   : paths (coconustot T t) c1 c2
-  = <i> (comp (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k]
+  = <i> (    comp (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k]
         ,<j> fill (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k] @ -j )
 
 iscontrcoconustot (T : U) (t : T)
@@ -615,7 +615,63 @@ iscontrcoconustot (T : U) (t : T)
 connectedcoconusfromt (T : U) (t : T) (c1 c2 : coconusfromt T t)
   : paths (coconusfromt T t) c1 c2
   = <i> (comp (<_> T) t [(i=0) -> c1.2, (i=1) -> c2.2]
-        ,<j> fill (<_> T) t [(i=0) -> c1.2, (i=1) -> c2.2] @ j )
+        ,fill (<_> T) t [(i=0) -> c1.2, (i=1) -> c2.2] )
 
 iscontrcoconusfromt (T : U) (t : T) : iscontr (coconusfromt T t)
   = ((t, <_> t), \(t' : coconusfromt T t) -> connectedcoconusfromt T t t' (t, <_> t))
+
+-- Paths space of a type: a point t, and the coconus from it.
+
+pathsspace (T : U) : U = (t : T) * coconusfromt T t
+
+pathsspacetriple (T : U) (t1 t2 : T) (e : paths T t1 t2)
+  : pathsspace T
+  = (t1, (coconusfromtpair T t1 t2 e))
+
+deltap (T : U) (t : T) : pathsspace T = pathsspacetriple T t t (<_> t)
+
+pathsspace' (T : U) : U = (xy : (_:T) * T) * paths T xy.1 xy.2
+
+-- Homotopy fibers.
+
+hfiber (X Y : U) (f : X -> Y) (y : Y) : U = (x:X) * paths Y (f x) y
+
+hfiberpair (X Y : U) (f : X -> Y) (y : Y) (x : X) (e : paths Y (f x) y)
+  : hfiber X Y f y = (x, e)
+
+hfiberpr1 (X Y : U) (f : X -> Y) (y : Y) (k : hfiber X Y f y) : X = k.1
+
+-- Paths in homotopy fibers.
+
+hfibertriangle1 (X Y : U) (f : X -> Y) (y : Y) (xe1 xe2 : hfiber X Y f y)
+    (e : paths (hfiber X Y f y) xe1 xe2)
+  : IdP (<i> paths Y (f (e @ i).1) y) xe1.2 xe2.2
+  = <i> (e @ i).2
+
+hfibertriangle1' (X Y : U) (f : X -> Y) (x : X) (xe1: hfiber X Y f (f x))
+    (e : paths (hfiber X Y f (f x)) xe1 (x, <_> f x))
+  : IdP (<i> paths Y (f (e @ i).1) (f x)) xe1.2 (<_> f x)
+  = <i> (e @ i).2
+
+-- Note : Due to the utilization of pathovers in this section, this theroem
+--        becomes the same as hfibertriangle1
+hfibertriangle1inv0 (X Y : U) (f : X -> Y) (y : Y) (xe1 xe2: hfiber X Y f y)
+    (e : paths (hfiber X Y f y) xe1 xe2)
+  : IdP (<i> paths Y (f (e @ i).1) y) xe1.2 xe2.2
+  = <i> (e @ i).2
+
+-- Note : Due to the utilization of pathovers in this section, this theroem
+--        becomes the same as hfibertriangle1'
+hfibertriangle1inv0' (X Y : U) (f : X -> Y) (x : X) (xe2: hfiber X Y f (f x))
+    (e : paths (hfiber X Y f (f x)) (x, <_> (f x)) xe2)
+  : IdP (<i> paths Y (f (e @ i).1) (f x)) (<_> f x) xe2.2
+  = <i> (e @ i).2
+
+hfibertriangle2 (X Y : U) (f : X -> Y) (y : Y) (xe1 xe2: hfiber X Y f y)
+    (ee : paths X xe1.1 xe2.1)
+    (eee: IdP (<i> paths Y (f (ee @ i)) y) xe1.2 xe2.2)
+  : paths (hfiber X Y f y) xe1 xe2
+  = <i> (ee @ i, eee @ i)
+
+-- Coconus of a function: the total space of the family of h-fibers.
+-- The coconus behaves like the image of a function.
