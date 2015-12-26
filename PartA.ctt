@@ -254,7 +254,7 @@ maponpathsidfun (X : U) (x x' : X) (e : paths X x x')
 maponpathscomp (X Y Z : U) (x x' : X) (f : X -> Y) (g : Y -> Z) (e : paths X x x')
   : paths (paths Z (g (f x)) (g (f x'))) (<i> g (maponpaths X Y f x x' e @ i))
                                          (<i> (funcomp X Y Z f g) (e @ i))
-  = <_ i> g (maponpaths X Y f x x' e @ i)
+  = <_ i> g (f (e @ i))
 
 -- naturality of maponpaths
 
@@ -660,8 +660,6 @@ hfibertriangle1inv0 (X Y : U) (f : X -> Y) (y : Y) (xe1 xe2: hfiber X Y f y)
   : IdP (<i> paths Y (f (e @ i).1) y) xe1.2 xe2.2
   = <i> (e @ i).2
 
--- Note : Due to the utilization of pathovers in this section, this theorem
---        becomes the same as hfibertriangle1'
 hfibertriangle1inv0' (X Y : U) (f : X -> Y) (x : X) (xe2: hfiber X Y f (f x))
     (e : paths (hfiber X Y f (f x)) (x, <_> (f x)) xe2)
   : IdP (<i> paths Y (f (e @ i).1) (f x)) (<_> f x) xe2.2
@@ -700,3 +698,179 @@ famhomothomothomot (X : U) (P Q : X -> U) (h1 h2 : homot X (\(x:X)->U) P Q)
     (H : homot X (\(x : X) -> paths U (P x) (Q x)) h1 h2)
   : homot (total2 X P) (\(_ : total2 X P) -> total2 X Q) (famhomotfun X P Q h1) (famhomotfun X P Q h2)
   = \(xp : total2 X P) -> <i> famhomotfun X P Q (\(x : X) -> H x @ i) xp
+
+-- ============= Weak equivalences =============
+-- Basics
+
+isweq (X Y : U) (f : X -> Y) : U = (y : Y) -> iscontr (hfiber X Y f y)
+
+idisweq (T : U) : isweq T T (idfun T)
+  = \(y : T) -> ((y, <_> y), \(t : hfiber T T (idfun T) y) -> <i> (t.2 @ i, <j> t.2 @ i \/ j))
+
+weq (X Y : U) : U = (f:X->Y) * isweq X Y f
+
+pr1weq (X Y : U) (eq : weq X Y) : X -> Y = eq.1
+
+-- Note: At this point coercions are used. Often, in the original library,
+--       f.1 would simply be denoted f.
+weqproperty (X Y : U) (f : weq X Y) : isweq X Y f.1 = f.2
+
+weqccontrhfiber (X Y : U) (w : weq X Y) (y : Y) : hfiber X Y w.1 y
+  = (w.2 y).1
+
+weqccontrhfiber2 (X Y : U) (w : weq X Y) (y : Y) (x : hfiber X Y w.1 y)
+  : paths (hfiber X Y w.1 y) x (weqccontrhfiber X Y w y)
+  = (w.2 y).2 x
+
+weqpair (X Y : U) (f : X -> Y) (is : isweq X Y f) : weq X Y = (f, is)
+
+idweq (X : U) : weq X X = (idfun X, idisweq X)
+
+-- Is there a better way to do this?
+eqweqmap (T1 T2 : U) (p : paths U T1 T2) : weq T1 T2
+  = paths_rect U T1 (\(T2 : U)(p : paths U T1 T2) -> weq T1 T2) (idweq T1) T2 p
+
+isweqtoempty (X : U) (f : X -> empty) : isweq X empty f
+  = \(e : empty) -> fromempty (iscontr (hfiber X empty f e)) e
+
+weqtoempty (X : U) (f : X -> empty) : weq X empty = (f, isweqtoempty X f)
+
+isweqtoempty2 (X Y : U) (f : X -> Y) (is : neg Y) : isweq X Y f
+  = \(y : Y) -> fromempty (iscontr (hfiber X Y f y)) (is y)
+
+weqtoempty2 (X Y : U) (f : X -> Y) (is : neg Y) : weq X Y = (f, isweqtoempty2 X Y f is)
+
+invmap (X Y : U) (w : weq X Y) (y : Y) : X = (weqccontrhfiber X Y w y).1
+                                        -- = (w.2 y).1.1
+{-
+We now define different homotopies and maps between the paths spaces corresponding to a weak equivalence. What may look like unnecessary complexity in the definition of homotinvweqweq is due to the fact that the "naive" definition needs to be corrected in order for lemma homotweqinvweqweq to hold.
+-}
+
+homotweqinvweq (X Y : U) (w : weq X Y) (y : Y) : paths Y (w.1 (invmap X Y w y)) y
+  = (weqccontrhfiber X Y w y).2
+
+homotinvweqweq0 (X Y : U) (w : weq X Y) (x : X) : paths X x (invmap X Y w (w.1 x))
+ = <i> ((w.2 (w.1 x)).2 (x, <_> w.1 x) @ i).1
+
+homotinvweqweq (X Y : U) (w : weq X Y) (x : X)
+  : paths X (invmap X Y w (w.1 x)) x
+  = <i> homotinvweqweq0 X Y w x @ -i
+
+-- Is there a better 
+diaglemma2 (X Y : U) (f : X -> Y) (x x' : X)
+    (e1 : paths X x x') (e2 : paths Y (f x') (f x))
+    (ee : IdP (<i> paths Y (f (e1 @ i)) (f x)) (<_> f x) e2)
+  : paths (paths Y (f x') (f x)) (<i> f (e1 @ -i)) e2
+  = <j i> comp (<_> Y) (f x) [(i=0) -> <k> f (e1 @ k)
+                             ,(i=1) -> <_> f x
+                             ,(j=0) -> <k> f (e1 @ k /\ -i)
+                             ,(j=1) -> <k> ee @ k @ i ]
+
+-- Is there a better way to prove this?
+--   This proof follows very closely to that presented in the original library.
+--   If there is a better proof, then it's probably specific to cubicaltt.
+homotweqinvweqweq (X Y : U) (w : weq X Y) (x : X)
+  : paths (paths Y (w.1 (invmap X Y w (w.1 x))) (w.1 x)) 
+          (<i> w.1 (homotinvweqweq X Y w x @ i))
+          (homotweqinvweq X Y w (w.1 x))
+  = diaglemma2 X Y w.1 x ((w.2 (w.1 x)).1.1) (<i> ((w.2 (w.1 x)).2 hfid @ i).1) hfcc.2 hft1
+  where
+  hfid : hfiber X Y w.1 (w.1 x) = hfiberpair X Y w.1 (w.1 x) x (<_> w.1 x)
+  hfcc : hfiber X Y w.1 (w.1 x) = weqccontrhfiber X Y w (w.1 x)
+  
+  hft1 : IdP (<i> paths Y (w.1 ((w.2 (w.1 x)).2 hfid @ i).1) (w.1 x)) hfid.2 hfcc.2
+       = hfibertriangle1 X Y w.1 (w.1 x) hfid hfcc (weqccontrhfiber2 X Y w (w.1 x) hfid)
+
+weq_transportf_adjointness (X Y : U) (w : weq X Y) (P : Y -> U) (x : X) (p : P (w.1 x))
+  : paths (P (w.1 (invmap X Y w (w.1 x))))
+          (transport (<i> P (w.1 (homotinvweqweq X Y w x @ -i))) p)
+          (transport (<i> P (homotweqinvweq X Y w (w.1 x) @ -i)) p)
+  = <i> comp (<j> P (homotweqinvweqweq X Y w x @ i @ -j)) p []
+
+-- Note: This theorem apears to be the same as weq_transportf_adjointness.
+--       I don't see why it would differ, even in the original library.
+weq_transportb_adjointness (X Y : U) (w : weq X Y) (P : Y -> U) (x : X) (p : P (w.1 x))
+   : paths (P (w.1 (invmap X Y w (w.1 x))))
+           (transport (<i> P (w.1 (homotinvweqweq X Y w x @ -i))) p)
+           (transport (<i> P (homotweqinvweq X Y w (w.1 x) @ -i)) p)
+  = <i> comp (<j> P (homotweqinvweqweq X Y w x @ i @ -j)) p []
+
+invmaponpathsweq (X Y : U) (w : weq X Y) (x x' : X)
+  : paths Y (w.1 x) (w.1 x') -> paths X x x'
+  = pathssec2 X Y w.1 (invmap X Y w) (homotinvweqweq X Y w) x x'
+
+invmaponpathsweqid (X Y : U) (w : weq X Y) (x : X)
+  : paths (paths X x x)
+          (invmaponpathsweq X Y w x x (<_> w.1 x))
+          (<_> x)
+  = pathssec2id X Y w.1 (invmap X Y w) (homotinvweqweq X Y w) x
+
+pathsweq1 (X Y : U) (w : weq X Y) (x : X) (y : Y)
+  : paths Y (w.1 x) y -> paths X x (invmap X Y w y)
+  = pathssec1 X Y w.1 (invmap X Y w) (homotinvweqweq X Y w) x y
+
+pathsweq1' (X Y : U) (w : weq X Y) (x : X) (y : Y) (e : paths X x (invmap X Y w y))
+  : paths Y (w.1 x) y
+  = <i> comp (<_> Y) (w.1 (e @ i)) [(i=0) -> <_> w.1 x
+                                   ,(i=1) -> homotweqinvweq X Y w y ]
+
+pathsweq3 (X Y : U) (w : weq X Y) (x x' : X) (e : paths X x x')
+  : paths (paths X x x')
+          (invmaponpathsweq X Y w x x' (<i> w.1 (e @ i)))
+          e
+  = pathssec3 X Y w.1 (invmap X Y w) (homotinvweqweq X Y w) x x' e
+
+-- Is there a better way to prove this?
+--   This proof follows very closely to what's in the original library, but this seems a bit ridiculous.
+pathsweq4 (X Y : U) (w : weq X Y) (x x' : X) (e : paths Y (w.1 x) (w.1 x'))
+  : paths (paths Y (w.1 x) (w.1 x'))
+          (<i> w.1 (invmaponpathsweq X Y w x x' e @ i))
+          e
+  = <i> comp (<_> paths Y (f x) (f x')) (e5 @ i) [(i=0) -> e4, (i=1) -> e1]
+  where
+  f : X -> Y = w.1
+  g : Y -> X = invmap X Y w
+  
+  ee : paths X (g (f x)) (g (f x')) = <i> g (e @ i)
+
+  eee : paths X x x'
+      = maponpathshomidinv X (funcomp X Y X f g) (homotinvweqweq X Y w) x x' ee
+
+  e1 : paths (paths Y (f x) (f x')) (<i> f (eee @ i)) e
+     = pathssec2 (paths Y (f x) (f x')) (paths X (g (f x)) (g (f x')))
+                 s p eps
+                 (<i> f (eee @ i)) e e3
+     where
+     e2lem (x : X) : paths X (g (f x)) x
+           = <i> ((w.2 (w.1 x)).2 (x, <_> w.1 x) @ -i).1
+    
+     e2 : paths (paths X (g (f x)) (g (f x'))) (<i> g (f (eee @ i))) ee
+        = maponpathshomid2 X (funcomp X Y X f g) e2lem x x' ee
+
+     e3 : paths (paths X (g (f x)) (g (f x'))) (<i> g (f (eee @ i))) (<i> g (e @ i))
+        = pathscomp0 (paths X (g (f x)) (g (f x')))
+                     (<i> g (f (eee @ i))) ee (<i> g (e @ i))
+                     e2
+                     (<_ i> (w.2 (e @ i)).1.1)
+
+     s : paths Y (f x) (f x') -> paths X (g (f x)) (g (f x')) = maponpaths Y X g (f x) (f x')
+
+     p : paths X (g (f x)) (g (f x')) -> paths Y (f x) (f x') = pathssec2 Y X g f (homotweqinvweq X Y w) (f x) (f x')
+
+     eps : (e : paths Y (f x) (f x')) -> paths (paths Y (f x) (f x')) (p (s e)) e
+         = pathssec3 Y X g f (homotweqinvweq X Y w) (f x) (f x')
+  
+  e4 : paths (paths Y (f x) (f x'))
+             (<j> f (invmaponpathsweq X Y w x x' (<i> f (eee @ i)) @ j))
+             (<i> f (invmaponpathsweq X Y w x x' e @ i))
+     = <j i> f (invmaponpathsweq X Y w x x' (e1 @ j) @ i)
+
+  X0 : paths (paths X x x')
+             (invmaponpathsweq X Y w x x' (<i> f (eee @ i)))
+             eee
+     = pathsweq3 X Y w x x' eee
+  
+  e5 : paths (paths Y (f x) (f x'))
+             (<j> f (invmaponpathsweq X Y w x x' (<i> f (eee @ i)) @ j))
+             (<i> f (eee @ i))
+     = <j i> f (X0 @ j @ i)
