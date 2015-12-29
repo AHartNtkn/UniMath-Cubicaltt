@@ -1,0 +1,110 @@
+module vectors where
+
+import nat
+
+data unit = tt
+data empty =
+empty_rect (C : U) : empty -> C = split {}
+natPara (n : nat) (p : Id nat (suc n) zero) : empty =
+  transport (<i> P (p @ i)) tt where
+    P : nat -> U = split
+      zero  -> empty
+      suc n -> unit
+
+-- Define lists and the length of a list
+data list (A : U) = nil | cons (a : A) (s : list A)
+length (A : U) : list A -> nat = split
+  nil -> zero
+  cons a l -> suc (length A l)
+
+-- If a list has zero length, then it is nil
+listnil (A : U) : (l : list A) -> (p : Id nat zero (length A l) ) -> Id (list A) l nil = split
+  nil -> \(p : Id nat zero zero) -> <_> nil
+  cons a l -> \(p : Id nat zero (suc (length A l))) ->
+              empty_rect (Id (list A) (cons a l) nil) (natPara (length A l) (<k> p @ -k))
+
+-- If a list has suc n length, then it is cons a l
+listcon (A : U) (n : nat) : (l : list A) -> (p : Id nat (suc n) (length A l)) ->
+                            (a : A) * (l2 : list A) * Id (list A) l (cons a l2) = split
+  nil -> \(p : Id nat (suc n) zero) -> empty_rect ((a : A) * (l2 : list A) * Id (list A) nil (cons a l2)) (natPara n p)
+  cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> (a, l, <_> cons a l)
+
+-- If a list has length suc n, then its head can be taken.
+lhead (A : U) (n : nat) : (l : list A) -> Id nat (suc n) (length A l) -> A = split
+  nil -> \(p : Id nat (suc n) zero) -> empty_rect A (natPara n p)
+  cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> a
+
+-- If a list has length suc n, then its tail can be taken.
+ltail (A : U) (n : nat) :
+  (l : list A) -> Id nat (suc n) (length A l) -> (t : list A) * Id nat n (length A t) = split
+  nil -> \(p : Id nat (suc n) zero) -> empty_rect ((t : list A) * Id nat n (length A t)) (natPara n p)
+  cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> (l, sucInj n (length A l) p)
+
+-- consing the head and tail of a list returns the original list.
+headtailcancel (A : U) (n : nat)
+  : (l : list A) -> (p : Id nat (suc n) (length A l)) -> 
+      Id (list A) (cons (lhead A n l p) (ltail A n l p).1) l
+  = split
+      nil -> \(p : Id nat (suc n) zero) ->
+        empty_rect (Id (list A) (cons (lhead A n nil p) (ltail A n nil p).1) nil) (natPara n p)
+      cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> <_> cons a l
+
+-- Vectors, defined recurtively
+vect (A : U) : nat -> U = split
+  zero  -> unit
+  suc n -> (a : A) * (vect A n)
+
+-- Vectors, defined as a sigma type
+vect2 (A : U) (n : nat) : U = (l : list A) * (Id nat n (length A l))
+
+-- Constructing the Isomorphism
+v0F12 (A : U) : (n : nat) -> vect A n -> vect2 A n = split
+  zero  -> \(v : vect A zero) -> (nil, <_> zero)
+  suc n -> \(v : vect A (suc n)) -> (cons v.1 (v0F12 A n v.2).1, <i> suc ((v0F12 A n v.2).2 @ i))
+
+v0F21 (A : U) : (n : nat) -> vect2 A n -> vect A n = split
+  zero  -> \(u : vect2 A zero) -> tt
+  suc n -> \(u : vect2 A (suc n)) -> (lhead A n u.1 u.2, v0F21 A n (ltail A n u.1 u.2))
+
+v0E21 (A : U) (n : nat) (v2 : vect2 A n) : Id (vect2 A n) (v0F12 A n (v0F21 A n v2)) v2
+  = v0E21lem3 A n (v0F12 A n (v0F21 A n v2)) v2 (v0E21lem A n v2)
+  where
+  v0E21lem (A : U) : (n : nat) -> (v2 : vect2 A n) ->
+             Id (list A) (v0F12 A n (v0F21 A n v2)).1 v2.1
+           = split
+               zero -> \(v2 : vect2 A zero) -> <i> listnil A v2.1 v2.2 @ -i
+               suc n -> \(v2 : vect2 A (suc n)) ->
+                 <i> comp (<_> list A) (cons (lhead A n v2.1 v2.2) (v0E21lem A n (ltail A n v2.1 v2.2) @ i))
+                                       [(i = 0) -> <_> (v0F12 A (suc n) (v0F21 A (suc n) v2)).1
+                                       ,(i = 1) -> headtailcancel A n v2.1 v2.2 ]
+
+  v0E21lem2 (n m o : nat) (p : Id nat o n) (q : Id nat o m) (r : Id nat n m)
+    : IdP (<i> Id nat o (r @ i)) p q
+    = <i j> lem3 @ -j @ i
+    where
+    lem : Id (Id nat o o) (<_> o) (<i> comp (<_> nat) (r @ i) [(i=0) -> <k> p @ -k,(i=1) -> <k> q @ -k])
+      = natSet o o (<_> o) (<i> comp (<_> nat) (r @ i) [(i=0) -> <k> p @ -k,(i=1) -> <k> q @ -k])
+    
+    lem2 : IdP (<i> Id nat (p @ -i) (q @ -i)) r (<i> comp (<_> nat) (r @ i) [(i=0) -> <k> p @ -k,(i=1) -> <k> q @ -k])
+      = <j i> fill (<_> nat) (r @ i) [(i=0) -> <k> p @ -k,(i=1) -> <k> q @ -k] @ j
+    
+    lem3 : IdP (<i> Id nat (p @ -i) (q @ -i)) r (<_> o) =
+      <i j> comp (<_> nat) (comp (<_> nat) (r @ j) [(j=0) -> <k> p @ -k,(j=1) -> <k> q @ -k])
+                           [(i=0) -> <k> lem2 @ -k @ j
+                           ,(i=1) -> <k> lem @ -k @ j
+                           ,(j=0) -> <k> p @ -i /\ k
+                           ,(j=1) -> <k> q @ -i /\ k ]
+
+  v0E21lem3 (A : U) (n : nat) (v1 v2 : vect2 A n) (p : Id (list A) v1.1 v2.1) : Id (vect2 A n) v1 v2
+    = <i> (p @ i, v0E21lem2 (length A v1.1) (length A v2.1) n v1.2 v2.2 (<j> length A (p @ j)) @ i)
+
+v0E12 (A : U) : (n : nat) -> (v : vect A n) -> Id (vect A n) (v0F21 A n (v0F12 A n v)) v = split
+  zero  -> \(v : vect A zero) -> helper v where
+    helper : (v : vect A zero) -> Id (vect A zero) (v0F21 A zero (v0F12 A zero v)) v = split
+      tt -> <_> tt
+  suc n -> \(v : vect A (suc n)) -> <i> (v.1, v0E12 A n v.2 @ i)
+
+-- Both definitions are equivalent
+vectEq (A : U) (n : nat) : Id U (vect A n) (vect2 A n) =
+  <i> glue (vect A n) [ (i = 0) -> (vect A n,idfun (vect A n),idfun (vect A n),refl (vect A n),refl (vect A n))
+                      , (i = 1) -> (vect2 A n,v0F21 A n,v0F12 A n,v0E12 A n,v0E21 A n) ]

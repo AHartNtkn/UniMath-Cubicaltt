@@ -842,7 +842,7 @@ pathsweq4 (X Y : U) (w : weq X Y) (x x' : X) (e : paths Y (w.1 x) (w.1 x'))
                  (<i> f (eee @ i)) e e3
      where
      e2lem (x : X) : paths X (g (f x)) x
-           = <i> ((w.2 (w.1 x)).2 (x, <_> w.1 x) @ -i).1
+        = <i> ((w.2 (f x)).2 (x, <_> f x) @ -i).1
     
      e2 : paths (paths X (g (f x)) (g (f x'))) (<i> g (f (eee @ i))) ee
         = maponpathshomid2 X (funcomp X Y X f g) e2lem x x' ee
