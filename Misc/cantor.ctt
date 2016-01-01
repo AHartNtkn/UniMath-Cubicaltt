@@ -7,42 +7,32 @@ data empty =
 neg (A : U) : U = A -> empty
 data unit = tt
 
-data surj (A B : U) =
-  sur (to : A -> B)
-      (from : B -> A)
-      (rightInv : (b : B) -> Id B (to (from b)) b)
+surj (A B : U) : U =
+  (to : A -> B) *
+  (from : B -> A) *
+  (b : B) -> Id B (to (from b)) b
 
-data noFixPoint (A : U) (f : A -> A) =
-  nf (p : (a : A) -> neg (Id A (f a) a))
+noFixPoint (A : U) (f : A -> A) : U =
+  (a : A) -> neg (Id A (f a) a)
 
-data fixPoint (A : U) (f : A -> A) =
-  fp (p : (a : A) * Id A (f a) a)
+fixPoint (A : U) (f : A -> A) : U =
+  (a : A) * Id A (f a) a
 
-FPL (T Y : U) (a : Y -> Y) : (surj T (T -> Y)) -> fixPoint Y a = split
-  sur to from ri -> fp (to t t , e) where
-    g (t : T) : Y = a (to t t)
-    t : T = from g
-    e : Id Y (a (to t t)) (to t t) = <i> (ri g @ -i) t
+fxPtLem (T Y : U) (a : Y -> Y) (s : surj T (T -> Y)) : fixPoint Y a = (s.1 t t, <i> (s.2.2 g @ -i) t) where
+  g (t : T) : Y = a (s.1 t t)
+  t : T = s.2.1 g
 
-FPT (T Y : U) (a : Y -> Y) : noFixPoint Y a -> neg (surj T (T -> Y)) = split
-  nf np -> \(sr : surj T (T -> Y)) -> ex (FPL T Y a sr) where
-    ex : neg (fixPoint Y a) = split
-      fp p -> np p.1 p.2
+fxPtThrm (T Y : U) (a : Y -> Y) (np : noFixPoint Y a) : neg (surj T (T -> Y))
+  = \(sr : surj T (T -> Y)) -> np (fxPtLem T Y a sr).1 (fxPtLem T Y a sr).2
 
-notb : bool -> bool = split
-  false -> true
-  true  -> false
+para (p : Id bool true false) : empty
+  = transport (<i> P (p @ i)) tt where
+  P : bool -> U = split
+    false -> empty
+    true  -> unit
 
-para (p : Id bool true false) : empty =
-  transport (<i> P (p @ i)) tt where
-    P : bool -> U = split
-      false -> empty
-      true  -> unit
+nfnotb : noFixPoint bool negBool = split
+  false -> \(tef : Id bool true false) -> para tef
+  true  -> \(fet : Id bool false true) -> para (<i> fet @ -i)
 
-nfnotb : noFixPoint bool notb =
-  nf p where
-    p : (b : bool) -> neg (Id bool (notb b) b) = split
-      false -> \(tef : Id bool true false) -> para tef
-      true  -> \(fet : Id bool false true) -> para (<i> fet @ -i)
-
-cantorsTheorem : neg (surj nat (nat -> bool)) = FPT nat bool notb nfnotb  
+cantorsTheorem : neg (surj nat (nat -> bool)) = fxPtThrm nat bool negBool nfnotb

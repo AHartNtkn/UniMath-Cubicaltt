@@ -874,3 +874,67 @@ pathsweq4 (X Y : U) (w : weq X Y) (x x' : X) (e : paths Y (w.1 x) (w.1 x'))
              (<j> f (invmaponpathsweq X Y w x x' (<i> f (eee @ i)) @ j))
              (<i> f (eee @ i))
      = <j i> f (X0 @ j @ i)
+
+-- Weak equivalences between contractible types (other implications are proved below).
+
+iscontrweqb (X Y : U) (w : weq X Y) : iscontr Y -> iscontr X
+  = iscontrretract Y X (invmap X Y w) w.1 (homotinvweqweq X Y w)
+
+-- Functions between fibers defined by a path on the base are weak equivalences.
+
+-- Is there a better way to prove this?
+isweqtransportf (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
+  : isweq (P x) (P x') (transportf X P x x' e)
+  = paths_rect X x (\(x' : X)(e : paths X x x') -> isweq (P x) (P x') (transportf X P x x' e)) d x' e
+  where
+  p : paths (P x -> P x) (idfun (P x)) (transportf X P x x (<_> x))
+    = <j> \(px : P x) -> fill (<_> P x) px [] @ j
+  
+  d : isweq (P x) (P x) (transportf X P x x (<_> x))
+    = transport (<i> isweq (P x) (P x) (p @ i)) (idisweq (P x))
+
+isweqtransportb (X : U) (P : X -> U) (x x' : X) (e : paths X x x')
+  : isweq (P x') (P x) (transportb X P x x' e)
+  = isweqtransportf X P x' x (<i> e @ -i)
+
+-- unit and contractibility
+-- unit is contractible (recall that tt is the name of the canonical term of the type unit ).
+
+isconnectedunit : (x x' : unit) -> paths unit x x' = split
+  tt -> helper where
+    helper : (x' : unit) -> paths unit tt x' = split
+      tt -> <_> tt
+
+unitl0 (p : paths unit tt tt) : coconustot unit tt = (tt, p)
+
+unitl1 (c : coconustot unit tt) : paths unit tt tt
+  = transport (<i> paths unit (isconnectedunit c.1 tt @ i) tt) c.2
+
+unitl2 (e : paths unit tt tt) : paths (paths unit tt tt) (unitl1 (unitl0 e)) e
+  = <i j> fill (<_> unit) (e @ j) [ (j = 0) -> <_> tt, (j = 1) -> <_> tt ] @ -i
+
+unitl3 (e : paths unit tt tt) : paths (paths unit tt tt) e (<_> tt)
+  = <i> comp (<_> paths unit tt tt) (unitl1 (connectedcoconustot unit tt (unitl0 (<_> tt)) (unitl0 e) @ -i))
+                                    [(i = 0) -> unitl2 e
+                                    ,(i = 1) -> unitl2 (<_> tt)]
+
+iscontrunit : iscontr unit = (tt, \(t : unit) -> isconnectedunit t tt)
+
+-- paths in unit are contractible.
+
+iscontrpathsinunit : (x x' : unit) -> iscontr (paths unit x x') = split
+  tt -> helper where
+    helper : (x' : unit) -> iscontr (paths unit tt x') = split
+      tt -> (<_> tt, \(ptt : paths unit tt tt) -> unitl3 ptt)
+
+-- A type T : UU is contractible if and only if T -> unit is a weak equivalence.
+
+ifcontrthenunitl0 (e1 e2 : paths unit tt tt) : paths (paths unit tt tt) e1 e2
+  = <i> comp (<_> paths unit tt tt) (<_> tt) [(i=0) -> <k> unitl3 e1 @ -k, (i=1) -> <k> unitl3 e2 @ -k ]
+
+isweqcontrtounit (T : U) (is : iscontr T) : isweq T unit (\(t : T) -> tt) = split
+  tt -> ((is.1, <_> tt), \(t : hfiber T unit (\(t : T) -> tt) tt) -> <i> (is.2 t.1 @ i , unitl3 t.2 @ i))
+
+weqcontrtounit (T : U) (is : iscontr T) : weq T unit = (\(t : T) -> tt, (isweqcontrtounit T is))
+
+iscontrifweqtounit (X : U) (w : weq X unit) : iscontr X = iscontrweqb X unit w iscontrunit
