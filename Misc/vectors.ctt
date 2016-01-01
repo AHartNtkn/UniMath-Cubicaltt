@@ -35,10 +35,11 @@ lhead (A : U) (n : nat) : (l : list A) -> Id nat (suc n) (length A l) -> A = spl
   cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> a
 
 -- If a list has length suc n, then its tail can be taken.
-ltail (A : U) (n : nat) :
-  (l : list A) -> Id nat (suc n) (length A l) -> (t : list A) * Id nat n (length A t) = split
-  nil -> \(p : Id nat (suc n) zero) -> empty_rect ((t : list A) * Id nat n (length A t)) (natPara n p)
-  cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> (l, sucInj n (length A l) p)
+ltail (A : U) (n : nat)
+  : (l : list A) -> Id nat (suc n) (length A l) -> (t : list A) * Id nat n (length A t)
+  = split
+      nil -> \(p : Id nat (suc n) zero) -> empty_rect ((t : list A) * Id nat n (length A t)) (natPara n p)
+      cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> (l, sucInj n (length A l) p)
 
 -- consing the head and tail of a list returns the original list.
 headtailcancel (A : U) (n : nat)
@@ -49,7 +50,7 @@ headtailcancel (A : U) (n : nat)
         empty_rect (Id (list A) (cons (lhead A n nil p) (ltail A n nil p).1) nil) (natPara n p)
       cons a l -> \(p : Id nat (suc n) (suc (length A l))) -> <_> cons a l
 
--- Vectors, defined recurtively
+-- Vectors, defined recursively
 vect (A : U) : nat -> U = split
   zero  -> unit
   suc n -> (a : A) * (vect A n)
@@ -69,14 +70,14 @@ v0F21 (A : U) : (n : nat) -> vect2 A n -> vect A n = split
 v0E21 (A : U) (n : nat) (v2 : vect2 A n) : Id (vect2 A n) (v0F12 A n (v0F21 A n v2)) v2
   = v0E21lem3 A n (v0F12 A n (v0F21 A n v2)) v2 (v0E21lem A n v2)
   where
-  v0E21lem (A : U) : (n : nat) -> (v2 : vect2 A n) ->
-             Id (list A) (v0F12 A n (v0F21 A n v2)).1 v2.1
-           = split
-               zero -> \(v2 : vect2 A zero) -> <i> listnil A v2.1 v2.2 @ -i
-               suc n -> \(v2 : vect2 A (suc n)) ->
-                 <i> comp (<_> list A) (cons (lhead A n v2.1 v2.2) (v0E21lem A n (ltail A n v2.1 v2.2) @ i))
-                                       [(i = 0) -> <_> (v0F12 A (suc n) (v0F21 A (suc n) v2)).1
-                                       ,(i = 1) -> headtailcancel A n v2.1 v2.2 ]
+  v0E21lem (A : U)
+    : (n : nat) -> (v2 : vect2 A n) -> Id (list A) (v0F12 A n (v0F21 A n v2)).1 v2.1
+    = split
+        zero -> \(v2 : vect2 A zero) -> <i> listnil A v2.1 v2.2 @ -i
+        suc n -> \(v2 : vect2 A (suc n)) ->
+           <i> comp (<_> list A) (cons (lhead A n v2.1 v2.2) (v0E21lem A n (ltail A n v2.1 v2.2) @ i))
+                                [(i = 0) -> <_> (v0F12 A (suc n) (v0F21 A (suc n) v2)).1
+                                ,(i = 1) -> headtailcancel A n v2.1 v2.2 ]
 
   v0E21lem2 (n m o : nat) (p : Id nat o n) (q : Id nat o m) (r : Id nat n m)
     : IdP (<i> Id nat o (r @ i)) p q
@@ -99,12 +100,15 @@ v0E21 (A : U) (n : nat) (v2 : vect2 A n) : Id (vect2 A n) (v0F12 A n (v0F21 A n 
     = <i> (p @ i, v0E21lem2 (length A v1.1) (length A v2.1) n v1.2 v2.2 (<j> length A (p @ j)) @ i)
 
 v0E12 (A : U) : (n : nat) -> (v : vect A n) -> Id (vect A n) (v0F21 A n (v0F12 A n v)) v = split
-  zero  -> \(v : vect A zero) -> helper v where
+  zero  -> helper where
     helper : (v : vect A zero) -> Id (vect A zero) (v0F21 A zero (v0F12 A zero v)) v = split
       tt -> <_> tt
   suc n -> \(v : vect A (suc n)) -> <i> (v.1, v0E12 A n v.2 @ i)
 
 -- Both definitions are equivalent
+vext12Eq (A : U) (n : nat) : isEquiv (vect A n) (vect2 A n) (v0F12 A n)
+  = gradLemma (vect A n) (vect2 A n) (v0F12 A n) (v0F21 A n) (v0E21 A n) (v0E12 A n)
+
 vectEq (A : U) (n : nat) : Id U (vect A n) (vect2 A n) =
-  <i> glue (vect A n) [ (i = 0) -> (vect A n,idfun (vect A n),idfun (vect A n),refl (vect A n),refl (vect A n))
-                      , (i = 1) -> (vect2 A n,v0F21 A n,v0F12 A n,v0E12 A n,v0E21 A n) ]
+  <i> glue (vect2 A n) [(i = 0) -> (vect A n, v0F12 A n, vext12Eq A n)
+                       ,(i = 1) -> (vect2 A n, idfun (vect2 A n), idIsEquiv (vect2 A n)) ]

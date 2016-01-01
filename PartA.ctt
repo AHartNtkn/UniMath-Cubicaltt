@@ -535,8 +535,8 @@ transportf_id2 (A : U) (a x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 a)
           (pathscomp0 A x2 x1 a (<i> p @ -i) q)
   = <i> comp (<_> paths A x2 a)
              (<j> comp (<_> A) x1 [ (j = 0) -> p, (j = 1) -> q ])
-             [(i = 0) -> <k i> comp (<_> A) (q @ i /\ k) [(i = 0) -> p, (i = 1) -> <l> q @ l \/ k ]
-             ,(i = 1) -> <k i> comp (<_> A) (p @ -i /\ k) [(i = 0) -> <l> p @ l \/ k, (i = 1) -> q ] ]
+             [(i = 0) -> <k o> comp (<_> A) (q @ o /\ k) [(o = 0) -> p, (o = 1) -> <l> q @ l \/ k ]
+             ,(i = 1) -> <k o> comp (<_> A) (p @ -o /\ k) [(o = 0) -> <l> p @ l \/ k, (o = 1) -> q ] ]
 
 transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
   : paths (paths A x2 x2)
