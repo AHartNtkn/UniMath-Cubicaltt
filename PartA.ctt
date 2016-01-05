@@ -134,7 +134,7 @@ pathscomp0rid (X : U) (a b : X) (e1 : paths X a b) :
 -- This is an equivalent definition.
 -- <j i> comp (<_> X) (e1 @ i) [(j = 1) -> <_> e1 @ i,(i=0) -> <_> a, (i=1) -> <_> b]
 
--- This is trivial in the original UniMath, but not in this setting. Wondering if there's a better way to prove this.
+-- This is trivial in the original UniMath, but not in this setting. Is there a better way to prove this.
 pathscomp0lid (X : U) (a b : X) (e1 : paths X a b)
   : paths (paths X a b) e1 (pathscomp0 X a a b (<_> a) e1)
   = paths_rect X a
@@ -848,10 +848,8 @@ pathsweq4 (X Y : U) (w : weq X Y) (x x' : X) (e : paths Y (w.1 x) (w.1 x'))
         = maponpathshomid2 X (funcomp X Y X f g) e2lem x x' ee
 
      e3 : paths (paths X (g (f x)) (g (f x'))) (<i> g (f (eee @ i))) (<i> g (e @ i))
-        = pathscomp0 (paths X (g (f x)) (g (f x')))
-                     (<i> g (f (eee @ i))) ee (<i> g (e @ i))
-                     e2
-                     (<_ i> (w.2 (e @ i)).1.1)
+        = <i> comp (<_> paths X (g (f x)) (g (f x'))) (e2 @ i)
+                   [(i=0) -> <_> e2 @ 0, (i=1) -> <_ k> (w.2 (e @ k)).1.1 ]
 
      s : paths Y (f x) (f x') -> paths X (g (f x)) (g (f x')) = maponpaths Y X g (f x) (f x')
 
@@ -935,6 +933,84 @@ ifcontrthenunitl0 (e1 e2 : paths unit tt tt) : paths (paths unit tt tt) e1 e2
 isweqcontrtounit (T : U) (is : iscontr T) : isweq T unit (\(t : T) -> tt) = split
   tt -> ((is.1, <_> tt), \(t : hfiber T unit (\(t : T) -> tt) tt) -> <i> (is.2 t.1 @ i , unitl3 t.2 @ i))
 
-weqcontrtounit (T : U) (is : iscontr T) : weq T unit = (\(t : T) -> tt, (isweqcontrtounit T is))
+weqcontrtounit (T : U) (is : iscontr T) : weq T unit = (\(t : T) -> tt, isweqcontrtounit T is)
 
 iscontrifweqtounit (X : U) (w : weq X unit) : iscontr X = iscontrweqb X unit w iscontrunit
+
+-- A homotopy equivalence is a weak equivalence
+
+hfibersgftog (X Y Z : U) (f : X -> Y) (g : Y -> Z) (z : Z) (xe : hfiber X Z (funcomp X Y Z f g) z)
+  : hfiber Y Z g z = (f xe.1, xe.2)
+
+constr2 (X Y : U) (f : X -> Y) (g : Y -> X) (efg: (y : Y) -> paths Y (f (g y)) y) (x0 : X) (xe : hfiber Y X g x0)
+  : (xe' : hfiber X X (funcomp X Y X f g) x0) * paths (hfiber Y X g x0) xe (hfibersgftog X Y X f g x0 xe')
+  = ((x0, <i> comp (<_> X) (xe.2 @ i) [(i=0) -> <k> g (eint @ k), (i=1) -> <_> x0])
+    ,<i> (eint @ i, <j> fill (<_> X) (xe.2 @ j) [(j=0) -> <k> g (eint @ k), (j=1) -> <_> x0] @ i))
+  where
+  eint : paths Y xe.1 (f x0) = pathssec1 Y X g f efg xe.1 x0 xe.2
+
+iscontrhfiberl1 (X Y : U) (f : X -> Y) (g : Y -> X) (efg: (y : Y) -> paths Y (f (g y)) y) (x0 : X)
+    (is : iscontr (hfiber X X (funcomp X Y X f g) x0)) : iscontr (hfiber Y X g x0)
+  = iscontrretract (hfiber X X (funcomp X Y X f g) x0)
+                   (hfiber Y X g x0)
+                   (hfibersgftog X Y X f g x0)
+                   (\(xe : hfiber Y X g x0) -> (constr2 X Y f g efg x0 xe).1)
+                   (\(xe : hfiber Y X g x0) -> <i> (constr2 X Y f g efg x0 xe).2 @ -i)
+                   is
+
+homothfiber1 (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (xe : hfiber X Y f y)
+  : hfiber X Y g y = (xe.1, <i> comp (<_> Y) (xe.2 @ i) [(i=0) -> h xe.1, (i=1) -> <_> y])
+
+homothfiber2 (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (xe : hfiber X Y g y)
+  : hfiber X Y f y = (xe.1, <i> comp (<_> Y) (h xe.1 @ i) [(i=0) -> <_> f xe.1, (i=1) -> xe.2])
+
+-- Is there a better way to prove this?
+homothfiberretr (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (xe : hfiber X Y g y)
+  : paths (hfiber X Y g y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)) xe
+  = d
+  where
+  xe1 : hfiber X Y g y
+      = (xe.1, (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)).2)
+
+  xedl : paths (paths Y (g xe.1) y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)).2
+                                    (<i> comp (<_> Y) (h xe.1 @ i) [ (i = 0) -> h xe.1, (i = 1) -> xe.2 ])
+       = <j i> comp (<_> Y) (fill (<_> Y) (h xe.1 @ i) [ (i = 0) -> <_> f xe.1, (i = 1) -> <k> xe.2 @ k /\ -j ] @ -j)
+                            [ (i = 0) -> h xe.1, (i = 1) -> <k> xe.2 @ k \/ -j ]
+
+  xedl2 : paths (paths Y (g xe.1) y) (<i> comp (<_> Y) (h xe.1 @ i) [ (i = 0) -> h xe.1, (i = 1) -> xe.2 ]) xe.2
+        = paths_rect Y (g xe.1)
+            (\(fxe : Y) (hxe : paths Y (g xe.1) fxe) ->
+              paths (paths Y (g xe.1) y) (<i> comp (<_> Y) (hxe @ -i) [ (i = 0) -> <k> hxe @ -k, (i = 1) -> xe.2 ]) xe.2 )
+            (<i> pathscomp0lid Y (g xe.1) y xe.2 @ -i) (f xe.1) (<i> h xe.1 @ -i)
+
+  xed : paths (paths Y (g xe.1) y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)).2 xe.2
+      = <i> comp (<_> paths Y (g xe.1) y) (xedl @ i) [(i=0) -> <_> xedl @ 0, (i=1) -> xedl2]
+
+  d : paths (hfiber X Y g y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)) xe
+    = hfibertriangle2 X Y g y xe1 xe (idpath X xe1.1) xed
+
+iscontrhfiberl2 (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (is : iscontr (hfiber X Y f y))
+  : iscontr (hfiber X Y g y)
+  = iscontrretract (hfiber X Y f y)
+                   (hfiber X Y g y)
+                   (homothfiber1 X Y f g h y)
+                   (homothfiber2 X Y f g h y)
+                   (homothfiberretr X Y f g h y)
+                   is
+
+isweqhomot (X Y : U) (f1 f2 : X -> Y) (h : homot X (\(_:X)->Y) f1 f2) (x0 : isweq X Y f1)
+  : isweq X Y f2
+  = \(y : Y) -> iscontrhfiberl2 X Y f1 f2 h y (x0 y)
+
+-- Note: this is the same as gradLemma from the prelude
+gradth (X Y : U) (f : X -> Y) (g : Y -> X) (egf: (x : X) -> paths X (g (f x)) x) (efg: (y : Y) -> paths Y (f (g y)) y)
+  : isweq X Y f
+  = \(y : Y) -> iscontrhfiberl1 Y X g f egf y (X0 y)
+  where
+  efg' (y : Y) : paths Y y (f (g y)) = <i> efg y @ -i
+  
+  X0 (y : Y) : iscontr (hfiber Y Y (funcomp Y X Y g f) y)
+             = iscontrhfiberl2 Y Y (idfun Y) (funcomp Y X Y g f) efg' y (idisweq Y y)
+
+weqgradth (X Y : U) (f : X -> Y) (g : Y -> X) (egf : (x : X) -> paths X (g (f x)) x) (efg : (y : Y) -> paths Y (f (g y)) y)
+  : weq X Y = (f, gradth X Y f g egf efg)
