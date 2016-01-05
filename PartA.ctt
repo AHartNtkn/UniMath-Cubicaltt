@@ -1002,7 +1002,7 @@ isweqhomot (X Y : U) (f1 f2 : X -> Y) (h : homot X (\(_:X)->Y) f1 f2) (x0 : iswe
   : isweq X Y f2
   = \(y : Y) -> iscontrhfiberl2 X Y f1 f2 h y (x0 y)
 
--- Note: this is the same as gradLemma from the prelude
+-- Note: this is (almost) the same as gradLemma from the prelude
 gradth (X Y : U) (f : X -> Y) (g : Y -> X) (egf: (x : X) -> paths X (g (f x)) x) (efg: (y : Y) -> paths Y (f (g y)) y)
   : isweq X Y f
   = \(y : Y) -> iscontrhfiberl1 Y X g f egf y (X0 y)
@@ -1012,5 +1012,29 @@ gradth (X Y : U) (f : X -> Y) (g : Y -> X) (egf: (x : X) -> paths X (g (f x)) x)
   X0 (y : Y) : iscontr (hfiber Y Y (funcomp Y X Y g f) y)
              = iscontrhfiberl2 Y Y (idfun Y) (funcomp Y X Y g f) efg' y (idisweq Y y)
 
+{-
+Note for later: we can generate paths from this like so;
+
+fiber (A B : U) (f : A -> B) (y : B) : U = (x : A) * paths B y (f x)
+isContr (A : U) : U = (x : A) * ((y : A) -> paths A x y)
+isEquiv (A B : U) (f : A -> B) : U = (y : B) -> isContr (fiber A B f y)
+
+eQconv (A B : U) (f : A -> B) (w : isweq A B f) : isEquiv A B f
+  = d where d (y : B) : isContr (fiber A B f y) = b where 
+    hfc (h : hfiber A B f y) : fiber A B f y = (h.1, <i> h.2 @ -i)
+    fhc (h : fiber A B f y) : hfiber A B f y = (h.1, <i> h.2 @ -i)
+    b : isContr (fiber A B f y) = (hfc (w y).1, \(y0 : fiber A B f y) -> <i> hfc ((w y).2 (fhc y0) @ -i))
+
+isoId (A B : U) (f : A -> B) (g : B -> A)
+      (s : (y : B) -> paths B (f (g y)) y)
+      (t : (x : A) -> paths A (g (f x)) x) : paths U A B =
+       <i> glue B [ (i = 0) -> (A,f,eQconv A B f (gradth A B f g t s))
+                  , (i = 1) -> (B,idfun B,eQconv B B (idfun B) (idisweq B)) ]
+
+It *might* be a good idea to go back and redefine iscontr and hfiber to align with the above definitions. Preliminary attempts have shown this to be *very* annoying. A large refactoring effort should be done, to make functions like pathssec1 consistent with the above format, if this is to be pursued.
+-}
+
 weqgradth (X Y : U) (f : X -> Y) (g : Y -> X) (egf : (x : X) -> paths X (g (f x)) x) (efg : (y : Y) -> paths Y (f (g y)) y)
   : weq X Y = (f, gradth X Y f g egf efg)
+
+
