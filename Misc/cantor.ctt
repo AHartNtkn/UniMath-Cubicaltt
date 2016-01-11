@@ -3,10 +3,6 @@ module cantor where
 import nat
 import bool
 
-data empty =
-neg (A : U) : U = A -> empty
-data unit = tt
-
 surj (A B : U) : U =
   (to : A -> B) *
   (from : B -> A) *
@@ -25,14 +21,7 @@ fxPtLem (T Y : U) (a : Y -> Y) (s : surj T (T -> Y)) : fixPoint Y a = (s.1 t t, 
 fxPtThrm (T Y : U) (a : Y -> Y) (np : noFixPoint Y a) : neg (surj T (T -> Y))
   = \(sr : surj T (T -> Y)) -> np (fxPtLem T Y a sr).1 (fxPtLem T Y a sr).2
 
-para (p : Id bool true false) : empty
-  = transport (<i> P (p @ i)) tt where
-  P : bool -> U = split
-    false -> empty
-    true  -> unit
-
-nfnotb : noFixPoint bool negBool = split
-  false -> \(tef : Id bool true false) -> para tef
-  true  -> \(fet : Id bool false true) -> para (<i> fet @ -i)
-
-cantorsTheorem : neg (surj nat (nat -> bool)) = fxPtThrm nat bool negBool nfnotb
+cantorsTheorem : neg (surj nat (nat -> bool)) = fxPtThrm nat bool negBool nfnotb where
+  nfnotb : noFixPoint bool negBool = split
+    false -> trueNeqFalse
+    true  -> falseNeqTrue

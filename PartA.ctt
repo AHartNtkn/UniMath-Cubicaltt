@@ -551,7 +551,7 @@ transportf_id3 (A : U) (x1 x2 : A) (p : paths A x1 x2) (q : paths A x1 x1)
 homot (X : U) (P : X -> U) (f g : (x : X) -> P x) : U = (x : X) -> paths (P x) (f x) (g x)
 
 homotcomp (X Y : U) (f f' f'' : X -> Y)
-  (h : homot X (\(_:X)->Y) f f') (h' : homot X (\(_:X)->Y) f' f'')
+    (h : homot X (\(_:X)->Y) f f') (h' : homot X (\(_:X)->Y) f' f'')
   : homot X (\(_:X)->Y) f f''
   = \(x : X) -> pathscomp0 Y (f x) (f' x) (f'' x) (h x) (h' x)
 
@@ -579,7 +579,7 @@ iscontrpair (T : U)
 iscontrpr1 (T : U) (k : iscontr T) : T = k.1
 
 iscontrretract (X Y : U) (p : X -> Y) (s : Y -> X)
-  (eps : (y : Y) -> paths Y (p (s y)) y) (is : iscontr X) : iscontr Y
+    (eps : (y : Y) -> paths Y (p (s y)) y) (is : iscontr X) : iscontr Y
   = (p is.1, \(t : Y) -> <i> comp (<_> Y) (p (is.2 (s t) @ i)) [(i=0) -> eps t, (i=1) -> <_> p is.1])
 
 proofirrelevancecontr (X : U) (is : iscontr X) (x x' : X) : paths X x x'
@@ -607,8 +607,7 @@ connectedcoconustot (T : U) (t : T) (c1 c2 : coconustot T t)
   = <i> (    comp (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k]
         ,<j> fill (<_> T) t [(i=0) -> <k> c1.2 @ -k, (i=1) -> <k> c2.2 @ -k] @ -j )
 
-iscontrcoconustot (T : U) (t : T)
-  : iscontr (coconustot T t)
+iscontrcoconustot (T : U) (t : T) : iscontr (coconustot T t)
   = ((t, <_> t), \(t' : coconustot T t) -> connectedcoconustot T t t' (t, <_> t))
 
 -- Is there a better way to do this?
@@ -750,7 +749,7 @@ homotweqinvweq (X Y : U) (w : weq X Y) (y : Y) : paths Y (w.1 (invmap X Y w y)) 
   = (weqccontrhfiber X Y w y).2
 
 homotinvweqweq0 (X Y : U) (w : weq X Y) (x : X) : paths X x (invmap X Y w (w.1 x))
- = <i> ((w.2 (w.1 x)).2 (x, <_> w.1 x) @ i).1
+  = <i> ((w.2 (w.1 x)).2 (x, <_> w.1 x) @ i).1
 
 homotinvweqweq (X Y : U) (w : weq X Y) (x : X)
   : paths X (invmap X Y w (w.1 x)) x
@@ -967,7 +966,7 @@ homothfiber2 (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (xe 
 -- Is there a better way to prove this?
 homothfiberretr (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (xe : hfiber X Y g y)
   : paths (hfiber X Y g y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)) xe
-  = d
+  = hfibertriangle2 X Y g y xe1 xe (idpath X xe1.1) xed
   where
   xe1 : hfiber X Y g y
       = (xe.1, (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)).2)
@@ -985,9 +984,6 @@ homothfiberretr (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (
 
   xed : paths (paths Y (g xe.1) y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)).2 xe.2
       = <i> comp (<_> paths Y (g xe.1) y) (xedl @ i) [(i=0) -> <_> xedl @ 0, (i=1) -> xedl2]
-
-  d : paths (hfiber X Y g y) (homothfiber1 X Y f g h y (homothfiber2 X Y f g h y xe)) xe
-    = hfibertriangle2 X Y g y xe1 xe (idpath X xe1.1) xed
 
 iscontrhfiberl2 (X Y : U) (f g : X -> Y) (h : homot X (\(_:X)->Y) f g) (y : Y) (is : iscontr (hfiber X Y f y))
   : iscontr (hfiber X Y g y)
@@ -1031,7 +1027,7 @@ isoId (A B : U) (f : A -> B) (g : B -> A)
        <i> glue B [ (i = 0) -> (A,f,eQconv A B f (gradth A B f g t s))
                   , (i = 1) -> (B,idfun B,eQconv B B (idfun B) (idisweq B)) ]
 
-It *might* be a good idea to go back and redefine iscontr and hfiber to align with the above definitions. Preliminary attempts have shown this to be *very* annoying. A large refactoring effort should be done, to make functions like pathssec1 consistent with the above format, if this is to be pursued.
+It *might* be a good idea to go back and redefine iscontr and hfiber to align with the above definitions. Preliminary attempts have shown this to be *very* annoying. A large refactoring effort should be done to make functions like pathssec1 consistent with the above format, if this is to be pursued.
 -}
 
 weqgradth (X Y : U) (f : X -> Y) (g : Y -> X) (egf : (x : X) -> paths X (g (f x)) x) (efg : (y : Y) -> paths Y (f (g y)) y)
