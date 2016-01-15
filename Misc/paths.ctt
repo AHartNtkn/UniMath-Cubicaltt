@@ -1,0 +1,35 @@
+module paths where
+
+import prelude
+
+-- The interval type
+data I = Z | O | seg <i> [(i=0) -> Z, (i=1) -> O]
+
+-- The type of all paths in type A
+paths1 (A : U) : U = I -> A
+paths2 (A : U) : U = (a b : A) * Id A a b
+
+p12 (A : U) (ia : paths1 A) : paths2 A
+  = (ia Z, ia O, <i> ia (seg{I} @ i))
+
+p21 (A : U) (se : paths2 A) : paths1 A = split
+  Z -> se.1
+  O -> se.2.1
+  seg @ i -> se.2.2 @ i
+
+p12e (A : U) (ia : paths1 A) : Id (paths1 A) (p21 A (p12 A ia)) ia
+  = <j> \(i : I) -> p12e' i @ j
+  where
+  p12e' : (i : I) -> Id A (p21 A (p12 A ia) i) (ia i) = split
+    Z -> <_> ia Z
+    O -> <_> ia O
+    seg @ i -> <_> ia (seg{I} @ i)
+
+p21e (A : U) (se : paths2 A) : Id (paths2 A) (p12 A (p21 A se)) se = <_> se
+
+paths12Eq (A : U) : isEquiv (paths1 A) (paths2 A) (p12 A)
+  = gradLemma (paths1 A) (paths2 A) (p12 A) (p21 A) (p21e A) (p12e A)
+
+pathsEq (A : U) : Id U (paths1 A) (paths2 A) =
+  <i> glue (paths2 A) [(i = 0) -> (paths1 A,p12 A, paths12Eq A)
+                      ,(i = 1) -> (paths2 A,idfun (paths2 A),idIsEquiv (paths2 A)) ]
