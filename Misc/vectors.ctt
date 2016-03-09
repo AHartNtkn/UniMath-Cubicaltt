@@ -1,6 +1,7 @@
 module vectors where
 
 import nat
+import equiv
 
 data unit = tt
 data empty =

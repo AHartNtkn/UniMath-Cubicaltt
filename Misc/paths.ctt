@@ -1,11 +1,12 @@
 module paths where
 
 import prelude
+import equiv
 
 -- The interval type
 data I = Z | O | seg <i> [(i=0) -> Z, (i=1) -> O]
 
--- The type of all paths in type A
+-- The type of all paths in type A, defined using a HIT and a Sigma Type
 paths1 (A : U) : U = I -> A
 paths2 (A : U) : U = (a b : A) * Id A a b
 
